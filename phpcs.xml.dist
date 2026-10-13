@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
-<ruleset name="Odds Comparison">
+<ruleset name="Best Odds Table">
     <description>PSR-12 (a superset of PSR-2) for all plugin PHP.</description>
 
-    <file>odds-comparison.php</file>
+    <file>best-odds-table.php</file>
     <file>src</file>
     <file>tests</file>
     <file>config</file>
@@ -14,6 +14,6 @@
 
     <!-- The bootstrap file must declare the plugin header and run side effects. -->
     <rule ref="PSR1.Files.SideEffects.FoundWithSymbols">
-        <exclude-pattern>odds-comparison.php</exclude-pattern>
+        <exclude-pattern>best-odds-table.php</exclude-pattern>
     </rule>
 </ruleset>

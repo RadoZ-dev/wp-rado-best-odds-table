@@ -1,5 +1,5 @@
 {
-    "name": "radoslav/odds-comparison",
+    "name": "radoslav/best-odds-table",
     "description": "Live odds comparison plugin for WordPress: pluggable odds sources, cached fetching, admin controls and a Gutenberg block.",
     "type": "wordpress-plugin",
     "license": "GPL-2.0-or-later",
@@ -17,12 +17,12 @@
     },
     "autoload": {
         "psr-4": {
-            "OddsComparison\\": "src/"
+            "BestOddsTable\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "OddsComparison\\Tests\\": "tests/"
+            "BestOddsTable\\Tests\\": "tests/"
         }
     },
     "scripts": {
