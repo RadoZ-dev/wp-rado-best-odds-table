@@ -1,0 +1,357 @@
+{
+  "generated_at": "2026-10-13T09:00:00Z",
+  "note": "Demo data. Prices are generated, not real.",
+  "events": [
+    {
+      "id": "ars-che-2026-10-18",
+      "sport": "football",
+      "competition": "Premier League",
+      "home": "Arsenal",
+      "away": "Chelsea",
+      "starts_at": "2026-10-18T14:00:00Z",
+      "markets": [
+        {
+          "key": "match_result",
+          "label": "Match Result",
+          "outcomes": {
+            "home": "Arsenal",
+            "draw": "Draw",
+            "away": "Chelsea"
+          },
+          "prices": {
+            "bet365": {
+              "home": "1/1",
+              "draw": "13/5",
+              "away": "13/5"
+            },
+            "william-hill": {
+              "home": "10/11",
+              "draw": "5/2",
+              "away": "11/4"
+            },
+            "paddy-power": {
+              "home": "21/20",
+              "draw": "11/4",
+              "away": "13/5"
+            },
+            "betfair": {
+              "home": "21/20",
+              "draw": "13/5",
+              "away": "11/4"
+            },
+            "sky-bet": {
+              "home": "1/1",
+              "draw": "13/5",
+              "away": "11/4"
+            },
+            "ladbrokes": {
+              "home": "10/11",
+              "draw": "13/5",
+              "away": "13/5"
+            },
+            "coral": {
+              "home": "10/11",
+              "draw": "13/5",
+              "away": "13/5"
+            },
+            "betfred": {
+              "home": "10/11",
+              "draw": "5/2",
+              "away": "5/2"
+            },
+            "unibet": {
+              "home": "10/11",
+              "draw": "13/5",
+              "away": "13/5"
+            },
+            "betway": {
+              "home": "10/11",
+              "draw": "5/2",
+              "away": "13/5"
+            }
+          }
+        },
+        {
+          "key": "btts",
+          "label": "Both Teams To Score",
+          "outcomes": {
+            "yes": "Yes",
+            "no": "No"
+          },
+          "prices": {
+            "bet365": {
+              "yes": "2/3",
+              "no": "5/4"
+            },
+            "william-hill": {
+              "yes": "2/3",
+              "no": "5/4"
+            },
+            "paddy-power": {
+              "yes": "2/3",
+              "no": "5/4"
+            },
+            "betfair": {
+              "yes": "2/3",
+              "no": "5/4"
+            },
+            "sky-bet": {
+              "yes": "8/13",
+              "no": "5/4"
+            },
+            "ladbrokes": {
+              "yes": "2/3",
+              "no": "6/5"
+            },
+            "coral": {
+              "yes": "2/3",
+              "no": "6/5"
+            },
+            "unibet": {
+              "yes": "4/7",
+              "no": "5/4"
+            },
+            "betway": {
+              "yes": "2/3",
+              "no": "11/8"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "liv-mci-2026-10-18",
+      "sport": "football",
+      "competition": "Premier League",
+      "home": "Liverpool",
+      "away": "Manchester City",
+      "starts_at": "2026-10-18T16:30:00Z",
+      "markets": [
+        {
+          "key": "match_result",
+          "label": "Match Result",
+          "outcomes": {
+            "home": "Liverpool",
+            "draw": "Draw",
+            "away": "Manchester City"
+          },
+          "prices": {
+            "bet365": {
+              "home": "11/8",
+              "draw": "11/4",
+              "away": "7/4"
+            },
+            "william-hill": {
+              "home": "11/8",
+              "draw": "13/5",
+              "away": "13/8"
+            },
+            "paddy-power": {
+              "home": "11/8",
+              "draw": "11/4",
+              "away": "7/4"
+            },
+            "betfair": {
+              "home": "5/4",
+              "draw": "11/4",
+              "away": "7/4"
+            },
+            "sky-bet": {
+              "home": "11/8",
+              "draw": "11/4",
+              "away": "7/4"
+            },
+            "ladbrokes": {
+              "home": "11/8",
+              "draw": "11/4",
+              "away": "7/4"
+            },
+            "coral": {
+              "home": "11/8",
+              "draw": "11/4",
+              "away": "7/4"
+            },
+            "betfred": {
+              "home": "5/4",
+              "draw": "11/4",
+              "away": "13/8"
+            },
+            "unibet": {
+              "home": "11/8",
+              "draw": "11/4",
+              "away": "13/8"
+            },
+            "betway": {
+              "home": "11/8",
+              "draw": "11/4",
+              "away": "13/8"
+            }
+          }
+        },
+        {
+          "key": "btts",
+          "label": "Both Teams To Score",
+          "outcomes": {
+            "yes": "Yes",
+            "no": "No"
+          },
+          "prices": {
+            "bet365": {
+              "yes": "4/9",
+              "no": "7/4"
+            },
+            "william-hill": {
+              "yes": "2/5",
+              "no": "7/4"
+            },
+            "paddy-power": {
+              "yes": "4/9",
+              "no": "7/4"
+            },
+            "betfair": {
+              "yes": "4/9",
+              "no": "7/4"
+            },
+            "sky-bet": {
+              "yes": "2/5",
+              "no": "15/8"
+            },
+            "ladbrokes": {
+              "yes": "1/2",
+              "no": "7/4"
+            },
+            "coral": {
+              "yes": "4/11",
+              "no": "7/4"
+            },
+            "unibet": {
+              "yes": "4/9",
+              "no": "15/8"
+            },
+            "betway": {
+              "yes": "2/5",
+              "no": "7/4"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "rma-bar-2026-10-19",
+      "sport": "football",
+      "competition": "La Liga",
+      "home": "Real Madrid",
+      "away": "Barcelona",
+      "starts_at": "2026-10-19T19:00:00Z",
+      "markets": [
+        {
+          "key": "match_result",
+          "label": "Match Result",
+          "outcomes": {
+            "home": "Real Madrid",
+            "draw": "Draw",
+            "away": "Barcelona"
+          },
+          "prices": {
+            "bet365": {
+              "home": "5/4",
+              "draw": "3/1",
+              "away": "7/4"
+            },
+            "william-hill": {
+              "home": "5/4",
+              "draw": "3/1",
+              "away": "7/4"
+            },
+            "paddy-power": {
+              "home": "5/4",
+              "draw": "11/4",
+              "away": "7/4"
+            },
+            "betfair": {
+              "home": "5/4",
+              "draw": "3/1",
+              "away": "15/8"
+            },
+            "sky-bet": {
+              "home": "5/4",
+              "draw": "3/1",
+              "away": "15/8"
+            },
+            "ladbrokes": {
+              "home": "5/4",
+              "draw": "3/1",
+              "away": "7/4"
+            },
+            "coral": {
+              "home": "5/4",
+              "draw": "3/1",
+              "away": "7/4"
+            },
+            "betfred": {
+              "home": "11/8",
+              "draw": "11/4",
+              "away": "7/4"
+            },
+            "unibet": {
+              "home": "6/5",
+              "draw": "11/4",
+              "away": "15/8"
+            },
+            "betway": {
+              "home": "5/4",
+              "draw": "3/1",
+              "away": "15/8"
+            }
+          }
+        },
+        {
+          "key": "btts",
+          "label": "Both Teams To Score",
+          "outcomes": {
+            "yes": "Yes",
+            "no": "No"
+          },
+          "prices": {
+            "bet365": {
+              "yes": "1/2",
+              "no": "11/8"
+            },
+            "william-hill": {
+              "yes": "4/7",
+              "no": "3/2"
+            },
+            "paddy-power": {
+              "yes": "8/15",
+              "no": "3/2"
+            },
+            "betfair": {
+              "yes": "8/15",
+              "no": "3/2"
+            },
+            "sky-bet": {
+              "yes": "1/2",
+              "no": "3/2"
+            },
+            "ladbrokes": {
+              "yes": "1/2",
+              "no": "3/2"
+            },
+            "coral": {
+              "yes": "4/9",
+              "no": "11/8"
+            },
+            "unibet": {
+              "yes": "8/15",
+              "no": "3/2"
+            },
+            "betway": {
+              "yes": "4/7",
+              "no": "3/2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
