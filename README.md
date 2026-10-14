@@ -2,7 +2,14 @@
 
 A WordPress plugin that compares odds from multiple bookmakers. Odds come from pluggable sources, are fetched on a schedule and cached, and are shown through a Gutenberg block with decimal, fractional and American formats.
 
-> Status: work in progress. Domain model, odds conversion, sources, watch list, scheduled fetching, caching and the REST API are in place; the admin page and the block follow.
+**Full technical documentation:** [DOCS.md](DOCS.md) (architecture, design patterns, caching and rate limits, hooks, REST API, extending the plugin).
+
+## Features
+
+- **Admin page** (Settings → Best Odds Table): choose bookmakers, their order, names, affiliate links and logos; choose which markets editors may use; choose the odds source; see fetch status and run a fetch.
+- **Gutenberg block** (Best Odds Table): pick an event and market, add, remove and reorder bookmakers, set the default format. Visitors switch between decimal, fractional and American odds; the best price is highlighted.
+- **Sources:** demo fixture (default, always available) and live odds from The Odds API.
+- **Performance:** visitors never trigger a fetch; two cache layers; works with full-page caching.
 
 ## Requirements
 
