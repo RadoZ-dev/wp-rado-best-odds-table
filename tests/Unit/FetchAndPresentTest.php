@@ -73,6 +73,48 @@ final class FetchAndPresentTest extends TestCase
         return new FixtureSource(__DIR__ . '/../../fixtures/odds.json', new EventFactory($this->converter));
     }
 
+    /**
+     * The fixture source, counting fetchEvent() calls; optionally answering
+     * every one of them with a rate-limit error.
+     */
+    private function countingSource(bool $rateLimited = false): OddsSourceInterface
+    {
+        return new class ($this->fixture(), $rateLimited) implements OddsSourceInterface {
+            public int $calls = 0;
+
+            public function __construct(
+                private readonly OddsSourceInterface $inner,
+                private readonly bool $rateLimited,
+            ) {
+            }
+
+            public function id(): string
+            {
+                return 'counting';
+            }
+
+            public function label(): string
+            {
+                return 'Counting';
+            }
+
+            public function fetchEvents(array $marketKeys = []): array
+            {
+                return $this->inner->fetchEvents($marketKeys);
+            }
+
+            public function fetchEvent(string $eventId, array $marketKeys = []): ?Event
+            {
+                $this->calls++;
+                if ($this->rateLimited) {
+                    throw SourceException::rateLimited('counting', 600);
+                }
+
+                return $this->inner->fetchEvent($eventId, $marketKeys);
+            }
+        };
+    }
+
     public function testRunFetchesWatchedPairsAndStoresThem(): void
     {
         $pair = new WatchedMarket('ars-che-2026-10-18', 'match_result');
@@ -192,6 +234,51 @@ final class FetchAndPresentTest extends TestCase
         self::assertSame(1, $fetcher->run(self::NOW)->failed);
         self::assertSame('best_odds_table_market_missing', $this->dispatched[0][0]);
         self::assertSame(0, $fetcher->run(self::NOW + 60)->failed, 'waits for the next interval');
+    }
+
+    public function testIndexKnowsWhichPairsTheSourceLists(): void
+    {
+        $listed = new WatchedMarket('ars-che-2026-10-18', 'match_result');
+        self::assertNull($this->repository->isListed($listed), 'no index yet');
+
+        $this->fetcher($this->fixture())->refreshIndex();
+
+        self::assertTrue($this->repository->isListed($listed));
+        self::assertFalse($this->repository->isListed(new WatchedMarket('ars-che-2026-10-18', 'no_such_market')));
+        self::assertFalse($this->repository->isListed(new WatchedMarket('made-up', 'match_result')));
+    }
+
+    public function testOnDemandFetchOnlyReachesTheSourceForListedPairs(): void
+    {
+        $source = $this->countingSource();
+        $fetcher = $this->fetcher($source);
+        $listed = new WatchedMarket('ars-che-2026-10-18', 'match_result');
+
+        self::assertNull($fetcher->fetchOnDemand($listed, self::NOW), 'no index yet');
+
+        $fetcher->refreshIndex();
+        self::assertNull($fetcher->fetchOnDemand(new WatchedMarket('made-up', 'match_result'), self::NOW));
+        self::assertNull($fetcher->fetchOnDemand(new WatchedMarket('ars-che-2026-10-18', 'no_such_market'), self::NOW));
+        self::assertSame(0, $source->calls, 'unlisted pairs never reach the source');
+
+        self::assertNotNull($fetcher->fetchOnDemand($listed, self::NOW));
+        self::assertSame(1, $source->calls);
+        self::assertNotNull($this->repository->find($listed));
+    }
+
+    public function testOnDemandFetchRespectsBackoff(): void
+    {
+        $source = $this->countingSource(rateLimited: true);
+        $fetcher = $this->fetcher($source);
+        $fetcher->refreshIndex();
+        $this->watchList->syncPost(1, [new WatchedMarket('liv-mci-2026-10-18', 'match_result')]);
+
+        self::assertSame(FetchReport::RATE_LIMITED, $fetcher->run(self::NOW)->status);
+        self::assertSame(1, $source->calls);
+
+        $listed = new WatchedMarket('ars-che-2026-10-18', 'match_result');
+        self::assertNull($fetcher->fetchOnDemand($listed, self::NOW + 60));
+        self::assertSame(1, $source->calls, 'no request while backing off');
     }
 
     public function testPresenterMarksBestPricesAmongShownBookmakersAndHidesEmptyRows(): void

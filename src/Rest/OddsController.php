@@ -90,10 +90,11 @@ final class OddsController
         $cached = $this->odds->find($pair);
 
         // Editors previewing a block for a pair nobody watches yet get a one-off
-        // fetch so the editor is not empty. Visitors never trigger a fetch.
+        // fetch so the editor is not empty. Visitors never trigger a fetch, and
+        // fetchOnDemand() refuses unlisted pairs and respects the backoff.
         if ($cached === null && $this->canEdit()) {
             try {
-                $this->fetcher->fetchPair($pair, time());
+                $this->fetcher->fetchOnDemand($pair, time());
                 $cached = $this->odds->find($pair);
             } catch (SourceException) {
                 // Fall through to "not available".

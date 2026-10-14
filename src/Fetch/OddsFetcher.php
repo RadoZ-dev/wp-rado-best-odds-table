@@ -93,6 +93,26 @@ final class OddsFetcher
     }
 
     /**
+     * Fetch one pair because a request asked for it (an editor previewing a block).
+     *
+     * Unlike run(), this is triggered by users, so it only fetches pairs the
+     * source's index lists and never while backing off. Otherwise anyone who
+     * can edit posts could send unlimited requests to the source.
+     *
+     * @return Event|null Null when the pair was not fetched or the source no longer lists it.
+     *
+     * @throws SourceException
+     */
+    public function fetchOnDemand(WatchedMarket $pair, int $now): ?Event
+    {
+        if ($this->isBackingOff($now) || $this->repository->isListed($pair) !== true) {
+            return null;
+        }
+
+        return $this->fetchPair($pair, $now);
+    }
+
+    /**
      * Rebuild the list of available events for the block editor's picker.
      *
      * @return list<array<string, mixed>>
@@ -112,8 +132,7 @@ final class OddsFetcher
 
     private function runUnlocked(int $now): FetchReport
     {
-        $backoffUntil = (int) ($this->cache->get(self::BACKOFF_KEY) ?? 0);
-        if ($backoffUntil > $now) {
+        if ($this->isBackingOff($now)) {
             return new FetchReport(FetchReport::BACKING_OFF);
         }
 
@@ -143,5 +162,10 @@ final class OddsFetcher
         }
 
         return new FetchReport(FetchReport::OK, $fetched, $failed, count($due) - count($batch));
+    }
+
+    private function isBackingOff(int $now): bool
+    {
+        return (int) ($this->cache->get(self::BACKOFF_KEY) ?? 0) > $now;
     }
 }

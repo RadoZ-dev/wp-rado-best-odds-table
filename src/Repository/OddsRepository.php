@@ -96,6 +96,33 @@ final class OddsRepository
         return is_array($index) ? $index : null;
     }
 
+    /**
+     * Whether the source lists this event and market, according to the index.
+     *
+     * Event ids reach us from block attributes and REST parameters, which
+     * users control; checking them here stops made-up ids from turning into
+     * requests to the source.
+     *
+     * @return bool|null Null when no index has been built yet, so the caller
+     *                   decides how strict to be.
+     */
+    public function isListed(WatchedMarket $pair): ?bool
+    {
+        $index = $this->index();
+
+        if ($index === null) {
+            return null;
+        }
+
+        foreach ($index as $summary) {
+            if (($summary['id'] ?? null) === $pair->eventId) {
+                return isset($summary['markets'][$pair->marketKey]);
+            }
+        }
+
+        return false;
+    }
+
     private function key(WatchedMarket $pair): string
     {
         // Hashed: event ids come from external sources and transient keys have a length limit.
