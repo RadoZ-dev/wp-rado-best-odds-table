@@ -17,6 +17,15 @@ use BestOddsTable\Admin\SettingsPage;
 use BestOddsTable\Domain\OddsFormat;
 use BestOddsTable\Plugin;
 
+// Action best_odds_table_rendered (string $eventId, string $marketKey): fires
+// whenever an odds table renders, also when it has nothing to show yet, so page
+// caches can tag the page and purge it when this pair's odds change.
+do_action(
+    'best_odds_table_rendered',
+    (string) ($attributes['eventId'] ?? ''),
+    (string) ($attributes['marketKey'] ?? '')
+);
+
 $view = Plugin::instance()->oddsTableBlock()->viewModel($attributes);
 
 if ($view === null) {

@@ -12,6 +12,7 @@ use BestOddsTable\Domain\OddsFormat;
 use BestOddsTable\Fetch\OddsFetcher;
 use BestOddsTable\Fetch\RefreshPolicy;
 use BestOddsTable\Http\WpHttpClient;
+use BestOddsTable\Integration\LiteSpeedCache;
 use BestOddsTable\Presentation\OddsTablePresenter;
 use BestOddsTable\Repository\BookmakerRepository;
 use BestOddsTable\Repository\MarketRepository;
@@ -250,6 +251,9 @@ final class Plugin
 
         // Block.
         add_action('init', [$this, 'registerBlock']);
+
+        // Page cache: purge only the pages whose odds changed. Inert without LiteSpeed Cache.
+        (new LiteSpeedCache())->register();
     }
 
     /**
@@ -431,6 +435,14 @@ final class Plugin
         // Distinct arguments, for the same reason as in onSavePost().
         wp_schedule_single_event(time(), self::CRON_INDEX, ['source-changed']);
         wp_schedule_single_event(time(), self::CRON_FETCH, ['source-changed']);
+
+        /**
+         * Fires after the odds source changed and its data was dropped, e.g. to
+         * purge every cached page that shows odds.
+         *
+         * @param string $newSource Id of the new source.
+         */
+        do_action('best_odds_table_source_changed', (string) $newValue);
     }
 
     /**
