@@ -149,7 +149,13 @@ final class Plugin
     {
         $labels = $this->labels();
 
-        return new OddsTablePresenter($this->converter, $labels['markets'], $labels['outcomes']);
+        return new OddsTablePresenter(
+            $this->converter,
+            $labels['markets'],
+            $labels['outcomes'],
+            // 0.5: a price more than 50% away from the median implied probability is suspect.
+            (float) apply_filters('best_odds_table_outlier_tolerance', 0.5),
+        );
     }
 
     /**

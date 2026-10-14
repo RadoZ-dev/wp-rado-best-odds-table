@@ -7,12 +7,16 @@ namespace BestOddsTable\Tests\Unit;
 use BestOddsTable\Conversion\OddsConverter;
 use BestOddsTable\Domain\Bookmaker;
 use BestOddsTable\Domain\Event;
+use BestOddsTable\Domain\Market;
+use BestOddsTable\Domain\Odds;
 use BestOddsTable\Domain\OddsFormat;
+use BestOddsTable\Domain\Price;
 use BestOddsTable\Fetch\FetchReport;
 use BestOddsTable\Fetch\OddsFetcher;
 use BestOddsTable\Fetch\RefreshPolicy;
 use BestOddsTable\Presentation\OddsTablePresenter;
 use BestOddsTable\Repository\BookmakerRepository;
+use BestOddsTable\Repository\CachedMarket;
 use BestOddsTable\Repository\OddsRepository;
 use BestOddsTable\Source\EventFactory;
 use BestOddsTable\Source\FixtureSource;
@@ -364,6 +368,63 @@ final class FetchAndPresentTest extends TestCase
         self::assertSame('Ergebnis', $view['market']['label']);
         // Team names come from the source and are never replaced.
         self::assertSame(['Arsenal', 'Unentschieden', 'Chelsea'], array_column($view['outcomes'], 'label'));
+    }
+
+    /**
+     * Present one "home" outcome with the given prices.
+     *
+     * @param array<string, float> $odds Bookmaker id => decimal odds.
+     *
+     * @return array<string, array<string, mixed>> Bookmaker id => presented cell.
+     */
+    private function presentHome(array $odds): array
+    {
+        $prices = [];
+        foreach ($odds as $bookmakerId => $decimal) {
+            $prices[] = new Price($bookmakerId, 'home', Odds::fromDecimal($decimal));
+        }
+        $market = new Market('match_result', 'Match Result', ['home' => 'Home'], $prices);
+        $event = new Event('e1', 'football', 'Test', 'Home', 'Away', new \DateTimeImmutable('2030-01-01'), ['match_result' => $market]);
+        $bookmakers = array_map(static fn (string $id): Bookmaker => new Bookmaker($id, $id, ''), array_keys($odds));
+
+        $view = (new OddsTablePresenter($this->converter))
+            ->present(new CachedMarket($event, $market, self::NOW, false), $bookmakers, OddsFormat::Decimal);
+
+        $cells = [];
+        foreach ($view['rows'] as $row) {
+            $cells[$row['bookmaker']['id']] = $row['prices']['home'];
+        }
+
+        return $cells;
+    }
+
+    public function testSuspectPriceIsFlaggedAndNeverTheBestPrice(): void
+    {
+        // Three bookmakers around 1.10; one feed error says 11.0 (a typo for 1.10).
+        $cells = $this->presentHome(['a' => 1.10, 'b' => 1.12, 'c' => 1.11, 'typo' => 11.0]);
+
+        self::assertTrue($cells['typo']['suspect']);
+        self::assertFalse($cells['typo']['best'], 'a data error must not be advertised as the best price');
+        self::assertTrue($cells['b']['best'], '1.12 is the best real price');
+        self::assertFalse($cells['a']['suspect']);
+    }
+
+    public function testNormalPriceDifferencesAreNotSuspect(): void
+    {
+        // A long shot with a wide but real spread between bookmakers.
+        $cells = $this->presentHome(['a' => 21.0, 'b' => 26.0, 'c' => 23.0]);
+
+        self::assertSame([false, false, false], array_column($cells, 'suspect'));
+        self::assertTrue($cells['b']['best'], '26.0 is the best price');
+    }
+
+    public function testTwoPricesAreNeverJudged(): void
+    {
+        // No meaningful median with two prices: the higher one is simply the best.
+        $cells = $this->presentHome(['a' => 1.10, 'b' => 11.0]);
+
+        self::assertSame([false, false], array_column($cells, 'suspect'));
+        self::assertTrue($cells['b']['best']);
     }
 
     public function testBookmakerRepositoryRespectsSettingsAndSelectionOrder(): void

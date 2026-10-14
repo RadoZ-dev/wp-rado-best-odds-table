@@ -32,6 +32,17 @@ final class SettingsPage
     public const OPTION_BOOKMAKERS = 'best_odds_table_' . BookmakerRepository::OPTION;
     public const OPTION_MARKETS = 'best_odds_table_' . MarketRepository::OPTION;
     public const OPTION_SOURCE = 'best_odds_table_source';
+    public const OPTION_NOTICE = 'best_odds_table_notice';
+
+    /**
+     * HTML allowed in the responsible gambling notice: links and emphasis only.
+     * Applied when saving and again when printing.
+     */
+    public const NOTICE_HTML = [
+        'a' => ['href' => true, 'target' => true, 'rel' => true],
+        'strong' => [],
+        'em' => [],
+    ];
     public const LAST_RUN_KEY = 'last_run';
 
     private const FETCH_ACTION = 'best_odds_table_fetch_now';
@@ -96,6 +107,13 @@ final class SettingsPage
             'type' => 'array',
             'sanitize_callback' => [$this, 'sanitizeMarkets'],
             'default' => [],
+        ]);
+
+        // No default on purpose: a never-saved notice reads as false and shows the
+        // translated default text, while a notice saved empty hides it.
+        register_setting(self::GROUP, self::OPTION_NOTICE, [
+            'type' => 'string',
+            'sanitize_callback' => [$this, 'sanitizeNotice'],
         ]);
 
         register_setting(self::GROUP, self::OPTION_SOURCE, [
@@ -238,6 +256,33 @@ final class SettingsPage
     /**
      * @internal Settings API callback.
      */
+    public function sanitizeNotice(mixed $input): string
+    {
+        return trim(wp_kses((string) (is_string($input) ? $input : ''), self::NOTICE_HTML));
+    }
+
+    /**
+     * The notice as safe HTML: the saved text, or the default until one is saved.
+     * Empty when an admin turned it off.
+     */
+    public static function notice(): string
+    {
+        $saved = get_option(self::OPTION_NOTICE, false);
+
+        $text = $saved === false
+            ? sprintf(
+                /* translators: %s: link to BeGambleAware.org. */
+                __('18+ | Please gamble responsibly. For free, confidential help visit %s.', 'best-odds-table'),
+                '<a href="https://www.begambleaware.org/" target="_blank" rel="noopener">BeGambleAware.org</a>'
+            )
+            : (string) $saved;
+
+        return wp_kses($text, self::NOTICE_HTML);
+    }
+
+    /**
+     * @internal Settings API callback.
+     */
     public function sanitizeSource(mixed $input): string
     {
         return $this->sanitizer->source($input, $this->sources->ids(), $this->defaultSource);
@@ -293,10 +338,12 @@ final class SettingsPage
             'fetchAction' => self::FETCH_ACTION,
             // Display only: the value just picks a message from a fixed list.
             'notice' => isset($_GET['bot_fetch']) ? sanitize_key(wp_unslash($_GET['bot_fetch'])) : '',
+            'gamblingNotice' => self::notice(),
             'fields' => [
                 'bookmakers' => self::OPTION_BOOKMAKERS,
                 'markets' => self::OPTION_MARKETS,
                 'source' => self::OPTION_SOURCE,
+                'notice' => self::OPTION_NOTICE,
             ],
             'group' => self::GROUP,
         ];

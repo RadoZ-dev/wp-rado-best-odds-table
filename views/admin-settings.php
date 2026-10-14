@@ -112,6 +112,13 @@ $notices = [
             <?php endforeach; ?>
         </fieldset>
 
+        <h2><?php echo esc_html__('Responsible gambling', 'best-odds-table'); ?></h2>
+        <p class="description" id="bot-notice-help">
+            <?php echo esc_html__('Shown under every odds table. Links, bold and italics are allowed. Leave empty to hide it.', 'best-odds-table'); ?>
+        </p>
+        <textarea class="large-text" rows="2" aria-describedby="bot-notice-help"
+            name="<?php echo esc_attr($f['notice']); ?>"><?php echo esc_textarea($view['gamblingNotice']); ?></textarea>
+
         <h2><?php echo esc_html__('Bookmakers', 'best-odds-table'); ?></h2>
         <p class="description">
             <?php echo esc_html__('Drag rows to set the default order. Disabled bookmakers are hidden in every block.', 'best-odds-table'); ?>

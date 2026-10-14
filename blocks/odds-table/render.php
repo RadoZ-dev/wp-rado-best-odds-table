@@ -13,6 +13,7 @@
 
 declare(strict_types=1);
 
+use BestOddsTable\Admin\SettingsPage;
 use BestOddsTable\Domain\OddsFormat;
 use BestOddsTable\Plugin;
 
@@ -132,12 +133,24 @@ $fetchedAt = strtotime($view['fetched_at']);
                                         <span class="screen-reader-text"><?php esc_html_e('No price', 'best-odds-table'); ?></span>
                                     </td>
                                 <?php else : ?>
-                                    <td class="bot-price<?php echo $cell['best'] ? ' is-best' : ''; ?>">
+                                    <?php
+                                    $suspectHint = __(
+                                        'This price is very different from the other bookmakers. Check it on the bookmaker\'s site.',
+                                        'best-odds-table'
+                                    );
+                                    $cellClass = 'bot-price' . ($cell['best'] ? ' is-best' : '') . ($cell['suspect'] ? ' is-suspect' : '');
+                                    ?>
+                                    <td class="<?php echo esc_attr($cellClass); ?>"
+                                        <?php echo $cell['suspect'] ? 'title="' . esc_attr($suspectHint) . '"' : ''; ?>>
                                         <?php foreach ($cell['formats'] as $format => $value) : ?>
                                             <span class="bot-odds bot-odds--<?php echo esc_attr($format); ?>"><?php echo esc_html($value); ?></span>
                                         <?php endforeach; ?>
                                         <?php if ($cell['best']) : ?>
                                             <span class="screen-reader-text"><?php esc_html_e('(best price)', 'best-odds-table'); ?></span>
+                                        <?php endif; ?>
+                                        <?php if ($cell['suspect']) : ?>
+                                            <span class="bot-flag" aria-hidden="true">!</span>
+                                            <span class="screen-reader-text"><?php echo esc_html($suspectHint); ?></span>
                                         <?php endif; ?>
                                     </td>
                                 <?php endif; ?>
@@ -160,4 +173,9 @@ $fetchedAt = strtotime($view['fetched_at']);
         );
         ?>
     </p>
+
+    <?php $gamblingNotice = SettingsPage::notice(); ?>
+    <?php if ($gamblingNotice !== '') : ?>
+        <p class="bot-responsible"><?php echo wp_kses($gamblingNotice, SettingsPage::NOTICE_HTML); ?></p>
+    <?php endif; ?>
 </div>

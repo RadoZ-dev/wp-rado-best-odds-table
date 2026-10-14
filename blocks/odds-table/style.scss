@@ -164,8 +164,40 @@
 	&.is-missing {
 		color: var(--bot-muted);
 	}
+
+	// Probably a data error: shown, but never as the best price.
+	&.is-suspect {
+		color: var(--bot-muted);
+		text-decoration: underline dotted;
+		cursor: help;
+	}
+}
+
+.bot-flag {
+	display: inline-block;
+	width: 1.1em;
+	height: 1.1em;
+	margin-left: 0.25em;
+	border-radius: 50%;
+	background: var(--bot-notice-bg);
+	color: var(--bot-notice-fg);
+	font-size: 0.75em;
+	font-weight: 700;
+	line-height: 1.1;
+	text-align: center;
+	vertical-align: middle;
 }
 
 .bot-updated {
 	margin: 0.5rem 0 0;
+}
+
+.bot-responsible {
+	margin: 0.25rem 0 0;
+	color: var(--bot-muted);
+	font-size: 0.8em;
+
+	a {
+		color: inherit;
+	}
 }
