@@ -3,8 +3,8 @@
 /**
  * Plugin Name:       Best Odds Table
  * Description:       Compare live odds from multiple bookmakers with a configurable Gutenberg block.
- * Version:           0.2.0
- * Requires at least: 6.5
+ * Version:           0.4.0
+ * Requires at least: 6.6
  * Requires PHP:      8.1
  * Author:            Radoslav Zdravković
  * License:           GPL-2.0-or-later

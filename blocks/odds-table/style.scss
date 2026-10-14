@@ -1,0 +1,149 @@
+/**
+ * Front end and editor preview styles.
+ *
+ * Colours come from the theme (currentColor, inherited fonts) with a few
+ * custom properties a theme can override, so the table fits any site.
+ */
+.wp-block-best-odds-table-odds-table {
+	--bot-border: color-mix(in srgb, currentcolor 15%, transparent);
+	--bot-muted: color-mix(in srgb, currentcolor 65%, transparent);
+	--bot-best-bg: #e6f4ea;
+	--bot-best-fg: #0b6b2b;
+	--bot-notice-bg: #fff4e5;
+	--bot-notice-fg: #7a4a00;
+
+	font-size: 0.95rem;
+
+	// Show only the selected format; the others stay in the markup for the switch.
+	.bot-odds {
+		display: none;
+	}
+
+	&[data-format="decimal"] .bot-odds--decimal,
+	&[data-format="fractional"] .bot-odds--fractional,
+	&[data-format="american"] .bot-odds--american {
+		display: inline;
+	}
+}
+
+.bot-header {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem 1.5rem;
+	align-items: flex-end;
+	justify-content: space-between;
+	margin-bottom: 0.75rem;
+
+	p {
+		margin: 0;
+	}
+}
+
+.bot-event {
+	font-size: 1.15em;
+	font-weight: 700;
+}
+
+.bot-meta,
+.bot-updated {
+	color: var(--bot-muted);
+	font-size: 0.875em;
+}
+
+.bot-format {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
+
+	label {
+		font-size: 0.875em;
+	}
+
+	select {
+		min-height: 2.25rem;
+		font: inherit;
+	}
+}
+
+.bot-notice {
+	margin: 0 0 0.75rem;
+	padding: 0.5rem 0.75rem;
+	border-radius: 4px;
+	background: var(--bot-notice-bg);
+	color: var(--bot-notice-fg);
+}
+
+.bot-empty {
+	margin: 0;
+	color: var(--bot-muted);
+}
+
+// Wide tables scroll inside the block instead of breaking the page layout.
+.bot-scroll {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+.bot-table {
+	width: 100%;
+	margin: 0;
+	border-collapse: collapse;
+
+	th,
+	td {
+		padding: 0.6rem 0.75rem;
+		border-bottom: 1px solid var(--bot-border);
+		white-space: nowrap;
+	}
+
+	thead th {
+		font-size: 0.875em;
+		font-weight: 600;
+		text-align: center;
+	}
+
+	thead th:first-child {
+		text-align: left;
+	}
+}
+
+// The bookmaker column stays visible while the prices scroll on small screens.
+.bot-bookmaker {
+	position: sticky;
+	left: 0;
+	z-index: 1;
+	background: var(--wp--preset--color--base, #fff);
+	font-weight: 600;
+	text-align: left;
+
+	a {
+		display: inline-flex;
+		gap: 0.5rem;
+		align-items: center;
+		color: inherit;
+	}
+
+	img {
+		width: auto;
+		height: 1.5rem;
+	}
+}
+
+.bot-price {
+	font-variant-numeric: tabular-nums;
+	text-align: center;
+
+	&.is-best {
+		background: var(--bot-best-bg);
+		color: var(--bot-best-fg);
+		font-weight: 700;
+	}
+
+	&.is-missing {
+		color: var(--bot-muted);
+	}
+}
+
+.bot-updated {
+	margin: 0.5rem 0 0;
+}

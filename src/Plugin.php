@@ -6,6 +6,7 @@ namespace BestOddsTable;
 
 use BestOddsTable\Admin\SettingsPage;
 use BestOddsTable\Admin\SettingsSanitizer;
+use BestOddsTable\Block\OddsTableBlock;
 use BestOddsTable\Conversion\OddsConverter;
 use BestOddsTable\Domain\OddsFormat;
 use BestOddsTable\Fetch\OddsFetcher;
@@ -40,7 +41,7 @@ use WP_Post;
  */
 final class Plugin
 {
-    public const VERSION = '0.3.0';
+    public const VERSION = '0.4.0';
     public const SLUG = 'best-odds-table';
 
     public const CRON_FETCH = 'best_odds_table_fetch';
@@ -208,7 +209,42 @@ final class Plugin
             $this->settingsPage()->register();
         }
 
-        // Day 2: the Gutenberg block.
+        // Block.
+        add_action('init', [$this, 'registerBlock']);
+    }
+
+    /**
+     * Used by the block's render.php.
+     */
+    public function oddsTableBlock(): OddsTableBlock
+    {
+        return new OddsTableBlock($this->odds, $this->bookmakers, $this->markets, $this->presenter());
+    }
+
+    /**
+     * Registers the block from its built metadata (build/odds-table/block.json),
+     * which also registers its scripts, styles and render.php.
+     *
+     * @internal Hooked to init.
+     */
+    public function registerBlock(): void
+    {
+        $path = $this->path('build/odds-table');
+
+        if (!is_readable($path . '/block.json')) {
+            add_action('admin_notices', static function (): void {
+                echo '<div class="notice notice-warning"><p>'
+                    . esc_html__(
+                        'Best Odds Table: the block is not built. Run "npm install && npm run build" in the plugin directory.',
+                        'best-odds-table'
+                    )
+                    . '</p></div>';
+            });
+
+            return;
+        }
+
+        register_block_type($path);
     }
 
     private function settingsPage(): SettingsPage

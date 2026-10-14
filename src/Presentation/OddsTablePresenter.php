@@ -6,6 +6,7 @@ namespace BestOddsTable\Presentation;
 
 use BestOddsTable\Conversion\OddsConverter;
 use BestOddsTable\Domain\Bookmaker;
+use BestOddsTable\Domain\Odds;
 use BestOddsTable\Domain\OddsFormat;
 use BestOddsTable\Repository\CachedMarket;
 
@@ -43,6 +44,9 @@ final class OddsTablePresenter
                 $price = $market->priceFor($bookmaker->id, $outcomeKey);
                 $prices[$outcomeKey] = $price === null ? null : [
                     'value' => $this->converter->format($price->odds, $format),
+                    // Every format, so the visitor can switch without a request
+                    // and a cached page still serves any format.
+                    'formats' => $this->allFormats($price->odds),
                     'decimal' => round($price->odds->decimal(), 4),
                     'best' => $best[$outcomeKey] !== null
                         && abs($price->odds->decimal() - $best[$outcomeKey]) < 1e-9,
@@ -74,5 +78,18 @@ final class OddsTablePresenter
             'fetched_at' => gmdate(DATE_ATOM, $cached->fetchedAt),
             'stale' => $cached->stale,
         ];
+    }
+
+    /**
+     * @return array<string, string> Format value => formatted odds.
+     */
+    private function allFormats(Odds $odds): array
+    {
+        $formats = [];
+        foreach (OddsFormat::cases() as $format) {
+            $formats[$format->value] = $this->converter->format($odds, $format);
+        }
+
+        return $formats;
     }
 }
