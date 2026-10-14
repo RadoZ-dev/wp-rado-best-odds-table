@@ -3,6 +3,7 @@
     <description>PSR-12 (a superset of PSR-2) for all plugin PHP.</description>
 
     <file>best-odds-table.php</file>
+    <file>uninstall.php</file>
     <file>src</file>
     <file>tests</file>
     <file>config</file>
@@ -26,5 +27,6 @@
     <!-- The bootstrap file must declare the plugin header and run side effects. -->
     <rule ref="PSR1.Files.SideEffects.FoundWithSymbols">
         <exclude-pattern>best-odds-table.php</exclude-pattern>
+        <exclude-pattern>uninstall.php</exclude-pattern>
     </rule>
 </ruleset>
