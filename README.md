@@ -125,6 +125,8 @@ Namespace `best-odds-table/v1`.
 
 ## Hooks
 
+The most used hooks are below. The full list, including The Odds API and suspect-price filters, with examples, is in [DOCS.md](DOCS.md#11-hooks-reference).
+
 | Hook | Type | Use |
 |---|---|---|
 | `best_odds_table_register_sources` | action | Register extra sources on the `SourceRegistry`. |
