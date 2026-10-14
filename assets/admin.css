@@ -42,3 +42,17 @@
 	background: #f0f6fc;
 	outline: 1px dashed #72aee6;
 }
+
+/* Logo field: preview, address and Media Library button on one line. */
+.bot-settings .bot-logo-field {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+}
+
+.bot-settings .bot-logo-preview {
+	flex: none;
+	width: 60px;
+	height: 24px;
+	object-fit: contain;
+}

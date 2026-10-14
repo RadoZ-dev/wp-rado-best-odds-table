@@ -114,7 +114,7 @@ $notices = [
                     <th class="bot-col-enabled"><?php echo esc_html__('Enabled', 'best-odds-table'); ?></th>
                     <th><?php echo esc_html__('Name', 'best-odds-table'); ?></th>
                     <th><?php echo esc_html__('Link (affiliate URL)', 'best-odds-table'); ?></th>
-                    <th><?php echo esc_html__('Logo URL', 'best-odds-table'); ?></th>
+                    <th><?php echo esc_html__('Logo', 'best-odds-table'); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -148,10 +148,34 @@ $notices = [
                                 placeholder="https://">
                         </td>
                         <td>
-                            <input type="url" class="regular-text"
-                                name="<?php echo esc_attr($base . '[logo]'); ?>"
-                                value="<?php echo esc_attr((string) $bookmaker->logoUrl); ?>"
-                                placeholder="https://">
+                            <?php $hasLogo = (bool) $bookmaker->logoUrl; ?>
+                            <div class="bot-logo-field">
+                                <img class="bot-logo-preview" alt=""
+                                    <?php echo $hasLogo ? 'src="' . esc_url($bookmaker->logoUrl) . '"' : 'hidden'; ?>>
+                                <?php // The address is still what is saved; the Media Library fills it in. ?>
+                                <input type="hidden" class="bot-logo-url"
+                                    name="<?php echo esc_attr($base . '[logo]'); ?>"
+                                    value="<?php echo esc_attr((string) $bookmaker->logoUrl); ?>">
+                                <button type="button" class="button bot-logo-choose"
+                                    data-title="<?php echo esc_attr(sprintf(
+                                        /* translators: %s: bookmaker name. */
+                                        __('Logo for %s', 'best-odds-table'),
+                                        $bookmaker->name
+                                    )); ?>"
+                                    data-button="<?php echo esc_attr__('Use this logo', 'best-odds-table'); ?>"
+                                    data-label-add="<?php echo esc_attr__('Upload logo', 'best-odds-table'); ?>"
+                                    data-label-change="<?php echo esc_attr__('Change logo', 'best-odds-table'); ?>">
+                                    <?php
+                                    echo $hasLogo
+                                        ? esc_html__('Change logo', 'best-odds-table')
+                                        : esc_html__('Upload logo', 'best-odds-table');
+                                    ?>
+                                </button>
+                                <button type="button" class="button-link button-link-delete bot-logo-remove"
+                                    <?php echo $hasLogo ? '' : 'hidden'; ?>>
+                                    <?php echo esc_html__('Remove', 'best-odds-table'); ?>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>

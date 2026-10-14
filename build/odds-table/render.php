@@ -103,14 +103,18 @@ $fetchedAt = strtotime($view['fetched_at']);
                         <tr>
                             <th scope="row" class="bot-bookmaker">
                                 <?php
+                                // Rows without a logo show only the name.
+                                $logo = empty($row['bookmaker']['logo']) ? '' : sprintf(
+                                    '<img class="bot-logo" src="%s" alt="" loading="lazy" decoding="async" %s>',
+                                    esc_url($row['bookmaker']['logo']),
+                                    'data-wp-init="callbacks.hideBrokenLogo"'
+                                );
+
                                 // Built as one string so no template whitespace ends up inside the link.
-                                $name = (empty($row['bookmaker']['logo']) ? '' : sprintf(
-                                    '<img src="%s" alt="" loading="lazy" decoding="async">',
-                                    esc_url($row['bookmaker']['logo'])
-                                )) . esc_html($row['bookmaker']['name']);
+                                $name = $logo . '<span>' . esc_html($row['bookmaker']['name']) . '</span>';
 
                                 if ($row['bookmaker']['url'] === '') {
-                                    echo $name; // phpcs:ignore -- Escaped above.
+                                    echo '<span class="bot-bookmaker-label">' . $name . '</span>'; // phpcs:ignore -- Escaped above.
                                 } else {
                                     printf(
                                         '<a href="%s" target="_blank" rel="sponsored nofollow noopener">%s</a>',

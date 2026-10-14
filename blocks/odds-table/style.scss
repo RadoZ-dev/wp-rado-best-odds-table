@@ -116,16 +116,28 @@
 	font-weight: 600;
 	text-align: left;
 
-	a {
+	a,
+	.bot-bookmaker-label {
 		display: inline-flex;
 		gap: 0.5rem;
 		align-items: center;
 		color: inherit;
 	}
+}
 
-	img {
-		width: auto;
-		height: 1.5rem;
+// Same height for every logo; width follows its shape, capped for very wide logos.
+.bot-logo {
+	display: block;
+	flex: none;
+	width: auto;
+	max-width: 4.5rem;
+	height: 1.5rem;
+	object-fit: contain;
+	object-position: left center;
+
+	// A logo that fails to load is removed from the layout (see view.js).
+	&.is-broken {
+		display: none;
 	}
 }
 

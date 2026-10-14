@@ -100,6 +100,35 @@ final class SettingsSanitizer
     }
 
     /**
+     * Why a logo address is unusable, judged from the server's answer to a
+     * HEAD request; null when it is an image or it cannot be told.
+     *
+     * Catches the common mistake of pasting an image's web page (for example
+     * a Wikimedia "File:" page) instead of the image file itself.
+     *
+     * @param int    $status      HTTP status; 0 when no response was received.
+     * @param string $contentType Content-Type header, possibly with parameters.
+     */
+    public function logoProblem(int $status, string $contentType): ?string
+    {
+        // No answer, or a server that does not allow HEAD: unknown, not wrong.
+        if ($status === 0 || $status === 405) {
+            return null;
+        }
+
+        if ($status >= 400) {
+            return sprintf('the address returned HTTP %d', $status);
+        }
+
+        $type = strtolower(trim(explode(';', $contentType)[0]));
+        if ($type !== '' && !str_starts_with($type, 'image/')) {
+            return $type === 'text/html' ? 'the address is a web page, not an image' : sprintf('the address returned %s, not an image', $type);
+        }
+
+        return null;
+    }
+
+    /**
      * @return array{0: list<string>, 1: list<string>} Enabled market keys in catalogue order, and warnings.
      */
     public function markets(mixed $input): array

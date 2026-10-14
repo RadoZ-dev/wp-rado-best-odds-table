@@ -74,6 +74,24 @@ final class SettingsTest extends TestCase
         self::assertSame($once, $twice);
     }
 
+    public function testLogoMustBeAnImageNotAWebPage(): void
+    {
+        // A Wikimedia "File:" page: the classic mistake, the address ends in .svg but is HTML.
+        self::assertSame(
+            'the address is a web page, not an image',
+            $this->sanitizer->logoProblem(200, 'text/html; charset=UTF-8')
+        );
+        self::assertSame('the address returned HTTP 404', $this->sanitizer->logoProblem(404, 'text/html'));
+        self::assertStringContainsString('application/pdf', (string) $this->sanitizer->logoProblem(200, 'application/pdf'));
+
+        self::assertNull($this->sanitizer->logoProblem(200, 'image/svg+xml'));
+        self::assertNull($this->sanitizer->logoProblem(200, 'IMAGE/PNG'));
+        // Unknown is not wrong: no response, HEAD not allowed, or no content type.
+        self::assertNull($this->sanitizer->logoProblem(0, ''));
+        self::assertNull($this->sanitizer->logoProblem(405, 'text/html'));
+        self::assertNull($this->sanitizer->logoProblem(200, ''));
+    }
+
     public function testMarketsKeepCatalogueOrderAndNeverEndUpEmpty(): void
     {
         self::assertSame([['match_result', 'btts'], []], $this->sanitizer->markets(['btts', 'match_result', 'corners']));

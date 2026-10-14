@@ -115,13 +115,57 @@ final class SettingsPage
             add_settings_error(self::OPTION_BOOKMAKERS, 'bookmaker_' . $i, $warning, 'warning');
         }
 
+        $previousLogos = [];
+        foreach ($this->bookmakers->all() as $existing) {
+            $previousLogos[$existing['bookmaker']->id] = $existing['bookmaker']->logoUrl;
+        }
+
         // WordPress-level URL normalisation on top of the pure validation.
         foreach ($rows as &$row) {
             $row['url'] = esc_url_raw($row['url'], ['http', 'https']);
             $row['logo'] = $row['logo'] === null ? null : esc_url_raw($row['logo'], ['http', 'https']);
+
+            // Only changed logos are checked, so saving never sends a request per bookmaker.
+            if ($row['logo'] !== null && $row['logo'] !== ($previousLogos[$row['id']] ?? null)) {
+                $problem = $this->logoProblem($row['logo']);
+                if ($problem !== null) {
+                    add_settings_error(self::OPTION_BOOKMAKERS, 'logo_' . $row['id'], sprintf(
+                        /* translators: 1: bookmaker name, 2: reason, e.g. "the address is a web page, not an image". */
+                        __(
+                            'The logo for %1$s was removed: %2$s. Use the image file\'s own address, or choose it from the Media Library.',
+                            'best-odds-table'
+                        ),
+                        $row['name'],
+                        $problem
+                    ), 'warning');
+                    $row['logo'] = null;
+                }
+            }
         }
 
         return $rows;
+    }
+
+    /**
+     * Asks the logo's server what the address returns.
+     *
+     * wp_safe_remote_head() refuses private and loopback addresses (other than
+     * this site's own host), so the check cannot be used to probe the network.
+     */
+    private function logoProblem(string $url): ?string
+    {
+        $response = wp_safe_remote_head($url, ['timeout' => 5, 'redirection' => 3]);
+
+        if (is_wp_error($response)) {
+            return null; // Unreachable right now: keep the address rather than guess.
+        }
+
+        $contentType = wp_remote_retrieve_header($response, 'content-type');
+
+        return $this->sanitizer->logoProblem(
+            (int) wp_remote_retrieve_response_code($response),
+            is_array($contentType) ? (string) reset($contentType) : (string) $contentType
+        );
     }
 
     /**
@@ -157,6 +201,7 @@ final class SettingsPage
             return; // Never load assets on other admin screens.
         }
 
+        wp_enqueue_media(); // The logo fields' "Choose" button opens the Media Library.
         wp_enqueue_style('best-odds-table-admin', $this->assetsUrl . 'admin.css', [], $this->version);
         wp_enqueue_script(
             'best-odds-table-admin',
