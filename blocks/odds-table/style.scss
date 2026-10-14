@@ -87,7 +87,10 @@
 .bot-table {
 	width: 100%;
 	margin: 0;
-	border-collapse: collapse;
+	// Separate, not collapsed: collapsed borders belong to the table and do not
+	// travel with the sticky column, so its row lines would break when scrolling.
+	border-spacing: 0;
+	border-collapse: separate;
 
 	th,
 	td {
@@ -107,12 +110,19 @@
 	}
 }
 
-// The bookmaker column stays visible while the prices scroll on small screens.
-.bot-bookmaker {
+// The bookmaker column, header included, stays visible while the prices scroll
+// on small screens. It needs an opaque background so prices slide under it,
+// and an edge line shows where they do.
+.bot-bookmaker,
+.bot-table thead th:first-child {
 	position: sticky;
 	left: 0;
 	z-index: 1;
 	background: var(--wp--preset--color--base, #fff);
+	box-shadow: inset -1px 0 0 var(--bot-border);
+}
+
+.bot-bookmaker {
 	font-weight: 600;
 	text-align: left;
 
@@ -125,7 +135,7 @@
 	}
 }
 
-// Same height for every logo; width follows its shape, capped for very wide logos.
+// Same height for every logo; width follows its shape, capped when very wide.
 .bot-logo {
 	display: block;
 	flex: none;
