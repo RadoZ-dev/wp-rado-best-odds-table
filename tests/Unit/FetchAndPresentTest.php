@@ -281,6 +281,26 @@ final class FetchAndPresentTest extends TestCase
         self::assertSame(1, $source->calls, 'no request while backing off');
     }
 
+    public function testResetForNewSourceDropsOldDataButKeepsWhatContentWatches(): void
+    {
+        $pair = new WatchedMarket('ars-che-2026-10-18', 'match_result');
+        $this->watchList->syncPost(1, [$pair]);
+        $fetcher = $this->fetcher($this->fixture());
+        $fetcher->refreshIndex();
+        $fetcher->run(self::NOW);
+        self::assertNotNull($this->repository->find($pair));
+        self::assertSame([], $this->watchList->due(new RefreshPolicy(), self::NOW + 60), 'just fetched');
+
+        $fetcher->resetForNewSource();
+
+        self::assertNull($this->repository->find($pair), 'no stale snapshot from the old source either');
+        self::assertNull($this->repository->index());
+        self::assertSame([$pair->key()], array_map(
+            static fn (WatchedMarket $p): string => $p->key(),
+            $this->watchList->due(new RefreshPolicy(), self::NOW + 60)
+        ), 'still watched, and due right away');
+    }
+
     public function testPresenterMarksBestPricesAmongShownBookmakersAndHidesEmptyRows(): void
     {
         $pair = new WatchedMarket('ars-che-2026-10-18', 'btts');

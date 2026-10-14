@@ -64,6 +64,15 @@ final class WatchList
     }
 
     /**
+     * Forget when each pair was fetched, so every pair is due again.
+     * Membership (which posts show which pair) is kept.
+     */
+    public function resetState(): void
+    {
+        $this->store->delete(self::STATE);
+    }
+
+    /**
      * Stored keys that are no longer valid (e.g. saved before the id rules
      * were tightened) are skipped: one bad row must not stop every cron run.
      * The next save of the post rewrites its membership without them.

@@ -211,6 +211,10 @@ final class Plugin
             $this->settingsPage()->register();
         }
 
+        // Switching odds source starts over. add_option_* covers the first save.
+        add_action('update_option_' . SettingsPage::OPTION_SOURCE, [$this, 'onSourceChanged'], 10, 2);
+        add_action('add_option_' . SettingsPage::OPTION_SOURCE, [$this, 'onSourceAdded'], 10, 2);
+
         // Block.
         add_action('init', [$this, 'registerBlock']);
     }
@@ -364,6 +368,35 @@ final class Plugin
         } catch (SourceException $e) {
             do_action('best_odds_table_index_failed', $e);
         }
+    }
+
+    /**
+     * Drops everything the previous source produced and queues an immediate
+     * index refresh and fetch, so the picker and the pages show the new
+     * source's data within a minute instead of after the next hourly refresh.
+     *
+     * @internal Hooked to update_option_best_odds_table_source.
+     */
+    public function onSourceChanged(mixed $oldValue, mixed $newValue): void
+    {
+        if ((string) $oldValue === (string) $newValue) {
+            return;
+        }
+
+        $this->fetcher()->resetForNewSource();
+
+        // Distinct arguments, for the same reason as in onSavePost().
+        wp_schedule_single_event(time(), self::CRON_INDEX, ['source-changed']);
+        wp_schedule_single_event(time(), self::CRON_FETCH, ['source-changed']);
+    }
+
+    /**
+     * @internal Hooked to add_option_best_odds_table_source (first save; the
+     *           previous value was the default).
+     */
+    public function onSourceAdded(string $option, mixed $value): void
+    {
+        $this->onSourceChanged(FixtureSource::ID, $value);
     }
 
     /**

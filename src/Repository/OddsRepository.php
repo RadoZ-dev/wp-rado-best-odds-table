@@ -78,6 +78,22 @@ final class OddsRepository
     }
 
     /**
+     * Drop a pair's odds from both layers, including the last-good snapshot.
+     */
+    public function forget(WatchedMarket $pair): void
+    {
+        $key = $this->key($pair);
+        $this->cache->delete($key);
+        $this->durable->delete($key);
+    }
+
+    public function forgetIndex(): void
+    {
+        $this->cache->delete(self::INDEX_KEY);
+        $this->durable->delete(self::INDEX_KEY);
+    }
+
+    /**
      * @param list<array<string, mixed>> $summaries
      */
     public function saveIndex(array $summaries, int $ttl): void

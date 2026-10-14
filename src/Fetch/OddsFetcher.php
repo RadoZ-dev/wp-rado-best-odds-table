@@ -116,6 +116,26 @@ final class OddsFetcher
     }
 
     /**
+     * Start over after the active source changed.
+     *
+     * Odds and the event index came from the previous source, which no longer
+     * updates them; keeping them would show another source's prices, as stale
+     * at best, forever. Its backoff is dropped too: a rate limit from one
+     * provider says nothing about the next. Which posts show which pairs is
+     * kept, and every pair becomes due for the next run.
+     */
+    public function resetForNewSource(): void
+    {
+        foreach ($this->watchList->all() as $pair) {
+            $this->repository->forget($pair);
+        }
+
+        $this->repository->forgetIndex();
+        $this->watchList->resetState();
+        $this->cache->delete(self::BACKOFF_KEY);
+    }
+
+    /**
      * Rebuild the list of available events for the block editor's picker.
      *
      * @return list<array<string, mixed>>
