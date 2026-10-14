@@ -54,7 +54,7 @@ $fetchedAt = strtotime($view['fetched_at']);
     data-wp-interactive="best-odds-table"
     <?php echo wp_interactivity_data_wp_context(['format' => $view['format']]); // phpcs:ignore -- Escaped by WordPress. ?>
     data-wp-bind--data-format="context.format"
-    data-wp-init="callbacks.restoreFormat"
+    data-wp-watch="callbacks.applyChosenFormat"
 >
     <div class="bot-header">
         <div>

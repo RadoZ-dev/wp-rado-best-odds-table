@@ -2,8 +2,12 @@
  * Visitor's odds format switch (Interactivity API).
  *
  * The server renders every format into each cell; CSS shows the one named in
- * the wrapper's data-format. This store only changes context.format (bound to
- * that attribute) and remembers the choice, so it survives page caching.
+ * the wrapper's data-format, which is bound to that table's context.format.
+ *
+ * Each table starts with the editor's default. Once the visitor picks a
+ * format, it is a reader preference, like a language: it goes into the shared
+ * state.chosen, every table on the page follows it at once, and it is
+ * remembered for later pages (in the browser, so it survives page caching).
  */
 import { getContext, getElement, store } from '@wordpress/interactivity';
 
@@ -29,21 +33,27 @@ function remembered() {
 	}
 }
 
-store( 'best-odds-table', {
+const { state } = store( 'best-odds-table', {
+	state: {
+		// Shared by every table on the page; null until the visitor picks one.
+		chosen: remembered(),
+	},
 	actions: {
 		setFormat( event ) {
 			const format = event.target.value;
 			if ( FORMATS.includes( format ) ) {
-				getContext().format = format;
+				state.chosen = format;
 				remember( format );
 			}
 		},
 	},
 	callbacks: {
-		restoreFormat() {
-			const format = remembered();
-			if ( format ) {
-				getContext().format = format;
+		// Runs for each table, and again whenever state.chosen changes: follow
+		// the visitor's choice once there is one, otherwise keep this table's
+		// own default from the editor.
+		applyChosenFormat() {
+			if ( state.chosen ) {
+				getContext().format = state.chosen;
 			}
 		},
 		// A bad logo address must not show a broken-image icon. The image may
