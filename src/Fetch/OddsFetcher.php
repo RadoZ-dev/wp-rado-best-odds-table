@@ -85,7 +85,10 @@ final class OddsFetcher
         }
 
         $startsAt = $event->startsAt->getTimestamp();
-        $this->repository->save($event, $now, $this->policy->cacheTtl($startsAt, $now));
+        // The source's own timestamp wins: a source serving a cached response
+        // must not make old odds look fresh.
+        $oddsAt = min($event->updatedAt?->getTimestamp() ?? $now, $now);
+        $this->repository->save($event, $oddsAt, $this->policy->cacheTtl($startsAt, $now));
         $this->watchList->markFetched($pair, $now, $startsAt);
         ($this->dispatch)('best_odds_table_fetched', $pair, $event);
 

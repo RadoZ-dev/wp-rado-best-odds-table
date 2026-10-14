@@ -69,6 +69,13 @@ final class EventFactory
             );
         }
 
+        // Optional; a malformed value only loses the timestamp, not the event.
+        try {
+            $updatedAt = empty($data['updated_at']) ? null : new DateTimeImmutable((string) $data['updated_at']);
+        } catch (Exception) {
+            $updatedAt = null;
+        }
+
         $markets = [];
         foreach ((array) ($data['markets'] ?? []) as $marketData) {
             $key = (string) ($marketData['key'] ?? '');
@@ -86,6 +93,7 @@ final class EventFactory
             away: (string) $data['away'],
             startsAt: $startsAt,
             markets: $markets,
+            updatedAt: $updatedAt,
         );
     }
 

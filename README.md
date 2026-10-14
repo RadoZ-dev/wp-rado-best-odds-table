@@ -19,6 +19,29 @@ composer install
 
 Then activate **Best Odds Table** in wp-admin. Activation schedules the fetch jobs.
 
+## Live odds (optional)
+
+Out of the box the plugin uses demo data (`fixtures/odds.json`). For live odds it ships an adapter for [The Odds API](https://the-odds-api.com/), a licensed feed covering 9 of the 10 default bookmakers (bet365 is not offered):
+
+1. Get a key at the-odds-api.com (the free plan is enough).
+2. Add it to `wp-config.php`. It is a secret, so it is not stored in the database:
+   ```php
+   define('BEST_ODDS_TABLE_ODDS_API_KEY', 'your-key');
+   ```
+3. In **Settings → Best Odds Table**, choose **The Odds API** as the source.
+
+One request returns every Premier League match with all bookmakers' match result prices, and the response is cached for 2 hours, about 12 requests a day, inside the free plan's 500 a month. On a paid plan, refresh more often:
+
+```php
+add_filter('best_odds_table_odds_api_cache_ttl', fn () => 5 * MINUTE_IN_SECONDS);
+add_filter('best_odds_table_odds_api_sports', fn () => [
+    'soccer_epl' => 'Premier League',
+    'soccer_spain_la_liga' => 'La Liga',
+]);
+```
+
+The table always shows when the source last updated the odds, not when the plugin last asked, so cached odds never look fresher than they are. Scraping Oddschecker was considered and rejected: it blocks automated requests (HTTP 403) and markup changes break scrapers without warning.
+
 ## Development
 
 ```bash

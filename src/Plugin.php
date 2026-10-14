@@ -11,6 +11,7 @@ use BestOddsTable\Conversion\OddsConverter;
 use BestOddsTable\Domain\OddsFormat;
 use BestOddsTable\Fetch\OddsFetcher;
 use BestOddsTable\Fetch\RefreshPolicy;
+use BestOddsTable\Http\WpHttpClient;
 use BestOddsTable\Presentation\OddsTablePresenter;
 use BestOddsTable\Repository\BookmakerRepository;
 use BestOddsTable\Repository\MarketRepository;
@@ -18,6 +19,7 @@ use BestOddsTable\Repository\OddsRepository;
 use BestOddsTable\Rest\OddsController;
 use BestOddsTable\Source\EventFactory;
 use BestOddsTable\Source\FixtureSource;
+use BestOddsTable\Source\OddsApiSource;
 use BestOddsTable\Source\OddsSourceInterface;
 use BestOddsTable\Source\SourceException;
 use BestOddsTable\Source\SourceRegistry;
@@ -280,6 +282,27 @@ final class Plugin
             FixtureSource::ID,
             static fn (): OddsSourceInterface => new FixtureSource($fixturePath, $factory)
         );
+
+        // Live source, offered only when a key is configured. The key lives in
+        // wp-config.php, not the database: it is a secret, and options leak into
+        // backups, exports and staging copies.
+        $apiKey = defined('BEST_ODDS_TABLE_ODDS_API_KEY') ? (string) constant('BEST_ODDS_TABLE_ODDS_API_KEY') : '';
+        if ($apiKey !== '') {
+            $converter = $this->converter;
+            $cache = $this->cache;
+            $this->sources->register(
+                OddsApiSource::ID,
+                static fn (): OddsSourceInterface => new OddsApiSource(
+                    http: new WpHttpClient(),
+                    cache: $cache,
+                    factory: new EventFactory($converter, OddsFormat::Decimal),
+                    apiKey: $apiKey,
+                    sports: (array) apply_filters('best_odds_table_odds_api_sports', ['soccer_epl' => 'Premier League']),
+                    bookmakerMap: (array) apply_filters('best_odds_table_odds_api_bookmakers', OddsApiSource::BOOKMAKERS),
+                    cacheTtl: (int) apply_filters('best_odds_table_odds_api_cache_ttl', 2 * HOUR_IN_SECONDS),
+                )
+            );
+        }
 
         /**
          * Fires after built-in odds sources are registered.

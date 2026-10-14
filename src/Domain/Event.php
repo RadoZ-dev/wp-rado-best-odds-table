@@ -19,7 +19,10 @@ final class Event
     public const ID_PATTERN = '/^[A-Za-z0-9_-]{1,100}$/';
 
     /**
-     * @param array<string, Market> $markets Keyed by market key.
+     * @param array<string, Market>  $markets   Keyed by market key.
+     * @param DateTimeImmutable|null $updatedAt When the source last updated these odds, if it says;
+     *                                          sources that serve cached responses must set it, so
+     *                                          the site never shows odds as fresher than they are.
      */
     public function __construct(
         public readonly string $id,
@@ -29,6 +32,7 @@ final class Event
         public readonly string $away,
         public readonly DateTimeImmutable $startsAt,
         private readonly array $markets,
+        public readonly ?DateTimeImmutable $updatedAt = null,
     ) {
     }
 
@@ -73,6 +77,7 @@ final class Event
             'home' => $this->home,
             'away' => $this->away,
             'starts_at' => $this->startsAt->format(DATE_ATOM),
+            'updated_at' => $this->updatedAt?->format(DATE_ATOM),
             'markets' => $markets,
         ];
     }
