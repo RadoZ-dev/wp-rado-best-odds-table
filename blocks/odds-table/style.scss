@@ -79,7 +79,10 @@
 }
 
 // Wide tables scroll inside the block instead of breaking the page layout.
+// Positioned, so the screen-reader-only labels in the cells (absolutely
+// positioned) are clipped by this box too; otherwise they widen the page.
 .bot-scroll {
+	position: relative;
 	overflow-x: auto;
 	-webkit-overflow-scrolling: touch;
 }
