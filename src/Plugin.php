@@ -284,7 +284,8 @@ final class Plugin
 
         $this->sources->register(
             FixtureSource::ID,
-            static fn (): OddsSourceInterface => new FixtureSource($fixturePath, $factory)
+            // With a clock, so demo matches are always upcoming.
+            static fn (): OddsSourceInterface => new FixtureSource($fixturePath, $factory, static fn (): int => time())
         );
 
         // Live source, offered only when a key is configured. The key lives in

@@ -42,6 +42,33 @@ final class SourceTest extends TestCase
         self::assertSame(['btts'], array_keys($events[0]->markets()));
     }
 
+    public function testWithoutClockFixtureDatesAreKept(): void
+    {
+        self::assertSame('2026-10-18 14:00', $this->fixtureSource()->fetchEvents()[0]->startsAt->format('Y-m-d H:i'));
+    }
+
+    public function testWithClockEarliestMatchIsTomorrowAndGapsAreKept(): void
+    {
+        $at = static fn (string $time): \Closure => static fn (): int => (int) strtotime($time);
+        $source = static fn (\Closure $clock): FixtureSource =>
+            new FixtureSource(self::FIXTURE, new EventFactory(new OddsConverter()), $clock);
+
+        $starts = array_map(
+            static fn ($event): string => $event->startsAt->format('Y-m-d H:i'),
+            $source($at('2026-11-03T09:00:00Z'))->fetchEvents()
+        );
+
+        // Fixture: 18 Oct 14:00, 18 Oct 16:30, 19 Oct 19:00. Shifted to start on 4 Nov.
+        self::assertSame(['2026-11-04 14:00', '2026-11-04 16:30', '2026-11-05 19:00'], $starts);
+
+        // Stable within a day, so kick-off times do not drift between page views.
+        $later = $source($at('2026-11-03T23:59:00Z'))->fetchEvents();
+        self::assertSame('2026-11-04 14:00', $later[0]->startsAt->format('Y-m-d H:i'));
+
+        // Ids do not change, so blocks keep pointing at the same matches.
+        self::assertSame('ars-che-2026-10-18', $later[0]->id);
+    }
+
     public function testMissingFixtureThrowsSourceException(): void
     {
         $this->expectException(SourceException::class);

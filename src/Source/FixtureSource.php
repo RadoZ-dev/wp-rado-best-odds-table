@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BestOddsTable\Source;
 
+use Closure;
 use InvalidArgumentException;
 use JsonException;
 use BestOddsTable\Domain\Event;
@@ -12,15 +13,26 @@ use BestOddsTable\Domain\Event;
  * Reads odds from a local JSON file.
  *
  * Used for development, automated tests and the public demo, so the demo
- * keeps working even if a scraped site blocks requests or changes markup.
+ * keeps working even if a live source is unavailable or out of quota.
+ *
+ * With a clock, kick-off times roll forward so the earliest match is always
+ * tomorrow; otherwise the demo would show only finished matches a few days
+ * after the fixture was written. The shift is in whole days, so times keep
+ * their time of day and only change once a day.
  */
 final class FixtureSource implements OddsSourceInterface
 {
     public const ID = 'fixture';
 
+    private const DAY = 86400;
+
+    /**
+     * @param (Closure(): int)|null $clock Current Unix time; null keeps the file's dates as they are.
+     */
     public function __construct(
         private readonly string $path,
         private readonly EventFactory $factory,
+        private readonly ?Closure $clock = null,
     ) {
     }
 
@@ -46,16 +58,52 @@ final class FixtureSource implements OddsSourceInterface
             throw new SourceException('Fixture file contains invalid JSON.', null, $e);
         }
 
+        $rows = array_values(array_filter((array) ($payload['events'] ?? []), 'is_array'));
+
         $events = [];
-        foreach ((array) ($payload['events'] ?? []) as $eventData) {
+        foreach ($this->rollForward($rows) as $eventData) {
             try {
-                $events[] = $this->factory->fromArray((array) $eventData, $marketKeys);
+                $events[] = $this->factory->fromArray($eventData, $marketKeys);
             } catch (InvalidArgumentException) {
                 continue; // Skip broken events, keep the rest.
             }
         }
 
         return $events;
+    }
+
+    /**
+     * Shift every kick-off by the same whole number of days, so the earliest
+     * one falls tomorrow (UTC) and the gaps between matches stay as written.
+     *
+     * @param list<array<string, mixed>> $rows
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function rollForward(array $rows): array
+    {
+        if ($this->clock === null) {
+            return $rows;
+        }
+
+        $starts = array_filter(array_map(
+            static fn (array $row): int|false => strtotime((string) ($row['starts_at'] ?? '')),
+            $rows
+        ));
+        if ($starts === []) {
+            return $rows;
+        }
+
+        $tomorrow = intdiv(($this->clock)(), self::DAY) + 1;
+        $shift = ($tomorrow - intdiv(min($starts), self::DAY)) * self::DAY;
+
+        foreach ($rows as $i => $row) {
+            if (isset($starts[$i])) {
+                $rows[$i]['starts_at'] = gmdate(DATE_ATOM, $starts[$i] + $shift);
+            }
+        }
+
+        return $rows;
     }
 
     public function fetchEvent(string $eventId, array $marketKeys = []): ?Event
