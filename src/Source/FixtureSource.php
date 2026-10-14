@@ -28,11 +28,13 @@ final class FixtureSource implements OddsSourceInterface
 
     /**
      * @param (Closure(): int)|null $clock Current Unix time; null keeps the file's dates as they are.
+     * @param string                $label Display name; the plugin passes a translated one.
      */
     public function __construct(
         private readonly string $path,
         private readonly EventFactory $factory,
         private readonly ?Closure $clock = null,
+        private readonly string $label = 'Local fixture (demo data)',
     ) {
     }
 
@@ -43,7 +45,7 @@ final class FixtureSource implements OddsSourceInterface
 
     public function label(): string
     {
-        return 'Local fixture (demo data)';
+        return $this->label;
     }
 
     public function fetchEvents(array $marketKeys = []): array

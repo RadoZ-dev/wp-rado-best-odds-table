@@ -31,12 +31,16 @@ final class OddsController
 {
     public const NAMESPACE = 'best-odds-table/v1';
 
+    /**
+     * @param array<string, string> $marketLabels Market key => translated display name.
+     */
     public function __construct(
         private readonly OddsRepository $odds,
         private readonly BookmakerRepository $bookmakers,
         private readonly MarketRepository $markets,
         private readonly OddsTablePresenter $presenter,
         private readonly OddsFetcher $fetcher,
+        private readonly array $marketLabels = [],
     ) {
     }
 
@@ -149,7 +153,12 @@ final class OddsController
         $filtered = [];
 
         foreach ($index as $event) {
-            $event['markets'] = array_intersect_key((array) ($event['markets'] ?? []), $enabled);
+            $markets = array_intersect_key((array) ($event['markets'] ?? []), $enabled);
+            // Translated names for known markets; others as the source named them.
+            foreach ($markets as $key => $label) {
+                $markets[$key] = $this->marketLabels[$key] ?? $label;
+            }
+            $event['markets'] = $markets;
             if ($event['markets'] !== []) {
                 $filtered[] = $event;
             }

@@ -53,6 +53,7 @@ final class OddsApiSource implements OddsSourceInterface
      * @param EventFactory          $factory      Must parse decimal prices; the API is asked for decimal odds.
      * @param array<string, string> $sports       The Odds API sport key => competition name, e.g. soccer_epl => Premier League.
      * @param array<string, string> $bookmakerMap The Odds API bookmaker key => plugin bookmaker id.
+     * @param string                $label        Display name; the plugin passes a translated one.
      */
     public function __construct(
         private readonly HttpClient $http,
@@ -62,6 +63,7 @@ final class OddsApiSource implements OddsSourceInterface
         private readonly array $sports = ['soccer_epl' => 'Premier League'],
         private readonly array $bookmakerMap = self::BOOKMAKERS,
         private readonly int $cacheTtl = 2 * 3600,
+        private readonly string $label = 'The Odds API (live, match result)',
     ) {
     }
 
@@ -72,7 +74,7 @@ final class OddsApiSource implements OddsSourceInterface
 
     public function label(): string
     {
-        return 'The Odds API (live, match result)';
+        return $this->label;
     }
 
     public function fetchEvents(array $marketKeys = []): array

@@ -9,6 +9,8 @@ use BestOddsTable\Repository\OddsRepository;
 use BestOddsTable\Source\OddsSourceInterface;
 use BestOddsTable\Source\SourceException;
 use BestOddsTable\Storage\CacheInterface;
+use BestOddsTable\Storage\CacheLock;
+use BestOddsTable\Storage\Lock;
 use BestOddsTable\Watch\WatchedMarket;
 use BestOddsTable\Watch\WatchList;
 
@@ -19,7 +21,7 @@ use BestOddsTable\Watch\WatchList;
  *  - only pairs that are due (RefreshPolicy) are fetched;
  *  - at most $batchSize requests per run; the rest wait for the next run;
  *  - a delay between requests;
- *  - a lock so overlapping cron runs cannot double the load;
+ *  - an atomic lock so overlapping cron runs cannot double the load;
  *  - on a rate-limit response the whole fetcher backs off for retry-after.
  *
  * Events are announced through $dispatch (do_action in WordPress), so other
@@ -36,8 +38,12 @@ final class OddsFetcher
     /** @var callable(string, mixed...): void */
     private $dispatch;
 
+    private readonly Lock $lock;
+
     /**
      * @param callable(string, mixed...): void|null $dispatch
+     * @param Lock|null                             $lock     Atomic in WordPress (WpOptionLock); defaults
+     *                                                        to a simple cache lock for single-process use.
      */
     public function __construct(
         private readonly OddsSourceInterface $source,
@@ -48,22 +54,23 @@ final class OddsFetcher
         private readonly int $batchSize = 20,
         private readonly int $delayMicroseconds = 250_000,
         ?callable $dispatch = null,
+        ?Lock $lock = null,
     ) {
         $this->dispatch = $dispatch ?? static function (): void {
         };
+        $this->lock = $lock ?? new CacheLock($cache);
     }
 
     public function run(int $now): FetchReport
     {
-        if ($this->cache->get(self::LOCK_KEY) !== null) {
+        if (!$this->lock->acquire(self::LOCK_KEY, self::LOCK_TTL)) {
             return new FetchReport(FetchReport::LOCKED);
         }
-        $this->cache->set(self::LOCK_KEY, $now, self::LOCK_TTL);
 
         try {
             return $this->runUnlocked($now);
         } finally {
-            $this->cache->delete(self::LOCK_KEY);
+            $this->lock->release(self::LOCK_KEY);
         }
     }
 

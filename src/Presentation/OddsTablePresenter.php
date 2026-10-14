@@ -13,11 +13,22 @@ use BestOddsTable\Repository\CachedMarket;
 /**
  * Turns a cached market into the view model used by both the REST endpoint
  * and the block's server render, so the two can never disagree.
+ *
+ * Sources name markets and outcomes in English. Display names passed here
+ * (translated by the plugin) replace them for the keys they cover; anything
+ * else, such as team names, is shown as the source gave it.
  */
 final class OddsTablePresenter
 {
-    public function __construct(private readonly OddsConverter $converter)
-    {
+    /**
+     * @param array<string, string> $marketLabels  Market key => display name.
+     * @param array<string, string> $outcomeLabels Outcome key => display name, e.g. draw => "Draw".
+     */
+    public function __construct(
+        private readonly OddsConverter $converter,
+        private readonly array $marketLabels = [],
+        private readonly array $outcomeLabels = [],
+    ) {
     }
 
     /**
@@ -67,9 +78,9 @@ final class OddsTablePresenter
                 'competition' => $cached->event->competition,
                 'starts_at' => $cached->event->startsAt->format(DATE_ATOM),
             ],
-            'market' => ['key' => $market->key, 'label' => $market->label],
+            'market' => ['key' => $market->key, 'label' => $this->marketLabels[$market->key] ?? $market->label],
             'outcomes' => array_map(
-                static fn (string $key, string $label): array => ['key' => $key, 'label' => $label],
+                fn (string $key, string $label): array => ['key' => $key, 'label' => $this->outcomeLabels[$key] ?? $label],
                 $outcomeKeys,
                 array_values($market->outcomes)
             ),

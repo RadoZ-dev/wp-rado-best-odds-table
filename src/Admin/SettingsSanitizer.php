@@ -10,6 +10,10 @@ namespace BestOddsTable\Admin;
  * Pure PHP so every rule is unit tested; SettingsPage adds the WordPress
  * layer (esc_url_raw, settings errors) on top.
  *
+ * Problems are reported as codes, not sentences: this class cannot call the
+ * translation functions, so SettingsPage turns each code into a translated,
+ * escaped message.
+ *
  * Every method is idempotent: WordPress runs a sanitize callback twice when
  * an option is saved for the first time (update_option falls through to
  * add_option, which sanitizes again), so already-clean data must pass
@@ -17,6 +21,14 @@ namespace BestOddsTable\Admin;
  */
 final class SettingsSanitizer
 {
+    public const INVALID_LINK = 'invalid_link';
+    public const INVALID_LOGO = 'invalid_logo';
+    public const NO_MARKETS = 'no_markets';
+
+    public const LOGO_HTTP_ERROR = 'http_error';
+    public const LOGO_WEB_PAGE = 'web_page';
+    public const LOGO_NOT_IMAGE = 'not_image';
+
     private const NAME_MAX_LENGTH = 60;
 
     /**
@@ -34,8 +46,10 @@ final class SettingsSanitizer
      * (a list of rows). Unknown ids are dropped: the catalogue decides which
      * bookmakers exist, the admin only configures them.
      *
-     * @return array{0: list<array{id: string, name: string, url: string, logo: string|null, enabled: bool}>, 1: list<string>}
-     *         Clean rows in submitted order, and human readable warnings.
+     * @return array{
+     *     0: list<array{id: string, name: string, url: string, logo: string|null, enabled: bool}>,
+     *     1: list<array{code: string, name: string}>
+     * } Clean rows in submitted order, and warnings (INVALID_LINK, INVALID_LOGO) with the bookmaker's name.
      */
     public function bookmakers(mixed $input): array
     {
@@ -64,7 +78,7 @@ final class SettingsSanitizer
 
             $url = $this->url($row['url'] ?? '');
             if ($url === null) {
-                $warnings[] = sprintf('The link for %s was not a valid http(s) address and was reset to the default.', $name);
+                $warnings[] = ['code' => self::INVALID_LINK, 'name' => $name];
             }
             if ($url === null || $url === '') {
                 $url = $defaults[$id]['url'];
@@ -72,7 +86,7 @@ final class SettingsSanitizer
 
             $logo = $this->url($row['logo'] ?? '');
             if ($logo === null) {
-                $warnings[] = sprintf('The logo for %s was not a valid http(s) address and was removed.', $name);
+                $warnings[] = ['code' => self::INVALID_LOGO, 'name' => $name];
             }
 
             $rows[$id] = [
@@ -108,8 +122,11 @@ final class SettingsSanitizer
      *
      * @param int    $status      HTTP status; 0 when no response was received.
      * @param string $contentType Content-Type header, possibly with parameters.
+     *
+     * @return array{code: string, status?: int, type?: string}|null LOGO_HTTP_ERROR (with status),
+     *         LOGO_WEB_PAGE, or LOGO_NOT_IMAGE (with the returned type).
      */
-    public function logoProblem(int $status, string $contentType): ?string
+    public function logoProblem(int $status, string $contentType): ?array
     {
         // No answer, or a server that does not allow HEAD: unknown, not wrong.
         if ($status === 0 || $status === 405) {
@@ -117,19 +134,23 @@ final class SettingsSanitizer
         }
 
         if ($status >= 400) {
-            return sprintf('the address returned HTTP %d', $status);
+            return ['code' => self::LOGO_HTTP_ERROR, 'status' => $status];
         }
 
-        $type = strtolower(trim(explode(';', $contentType)[0]));
-        if ($type !== '' && !str_starts_with($type, 'image/')) {
-            return $type === 'text/html' ? 'the address is a web page, not an image' : sprintf('the address returned %s, not an image', $type);
+        // The header comes from a remote server, so only MIME-type characters are kept.
+        $type = (string) preg_replace('#[^a-z0-9.+/-]#', '', strtolower(explode(';', $contentType)[0]));
+
+        if ($type === '' || str_starts_with($type, 'image/')) {
+            return null;
         }
 
-        return null;
+        return $type === 'text/html'
+            ? ['code' => self::LOGO_WEB_PAGE]
+            : ['code' => self::LOGO_NOT_IMAGE, 'type' => $type];
     }
 
     /**
-     * @return array{0: list<string>, 1: list<string>} Enabled market keys in catalogue order, and warnings.
+     * @return array{0: list<string>, 1: list<array{code: string}>} Enabled market keys in catalogue order, and warnings (NO_MARKETS).
      */
     public function markets(mixed $input): array
     {
@@ -140,7 +161,7 @@ final class SettingsSanitizer
         ));
 
         if ($keys === []) {
-            return [array_keys($this->marketCatalogue), ['At least one market must stay enabled, so all markets were kept.']];
+            return [array_keys($this->marketCatalogue), [['code' => self::NO_MARKETS]]];
         }
 
         return [$keys, []];

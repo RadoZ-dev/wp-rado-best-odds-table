@@ -24,6 +24,7 @@ use BestOddsTable\Source\OddsSourceInterface;
 use BestOddsTable\Source\SourceException;
 use BestOddsTable\Source\SourceRegistry;
 use BestOddsTable\Storage\TransientCache;
+use BestOddsTable\Storage\WpOptionLock;
 use BestOddsTable\Storage\WpOptionStore;
 use BestOddsTable\Watch\BlockScanner;
 use BestOddsTable\Watch\WatchedMarket;
@@ -146,7 +147,32 @@ final class Plugin
 
     public function presenter(): OddsTablePresenter
     {
-        return new OddsTablePresenter($this->converter);
+        $labels = $this->labels();
+
+        return new OddsTablePresenter($this->converter, $labels['markets'], $labels['outcomes']);
+    }
+
+    /**
+     * Translated display names for the markets and outcomes the plugin ships
+     * with. Sources and config/markets.php name them in English; these replace
+     * those names wherever they are shown. Only call after init, when
+     * translations are loaded.
+     *
+     * @return array{markets: array<string, string>, outcomes: array<string, string>}
+     */
+    public function labels(): array
+    {
+        return [
+            'markets' => [
+                'match_result' => __('Match Result', 'best-odds-table'),
+                'btts' => __('Both Teams To Score', 'best-odds-table'),
+            ],
+            'outcomes' => [
+                'draw' => __('Draw', 'best-odds-table'),
+                'yes' => __('Yes', 'best-odds-table'),
+                'no' => __('No', 'best-odds-table'),
+            ],
+        ];
     }
 
     /**
@@ -175,6 +201,7 @@ final class Plugin
             batchSize: (int) apply_filters('best_odds_table_fetch_batch_size', 20),
             delayMicroseconds: (int) apply_filters('best_odds_table_fetch_delay_us', 250_000),
             dispatch: 'do_action',
+            lock: new WpOptionLock(),
         );
     }
 
@@ -271,6 +298,8 @@ final class Plugin
             viewsPath: $this->path('views/'),
             assetsUrl: $this->url('assets/'),
             version: self::VERSION,
+            // Lazy: the page is built at load time, before translations are available.
+            marketLabels: fn (): array => $this->labels()['markets'],
         );
     }
 
@@ -284,8 +313,14 @@ final class Plugin
 
         $this->sources->register(
             FixtureSource::ID,
-            // With a clock, so demo matches are always upcoming.
-            static fn (): OddsSourceInterface => new FixtureSource($fixturePath, $factory, static fn (): int => time())
+            // With a clock, so demo matches are always upcoming. Factories run after
+            // init (cron, REST, admin screens), so the labels can be translated here.
+            static fn (): OddsSourceInterface => new FixtureSource(
+                $fixturePath,
+                $factory,
+                static fn (): int => time(),
+                __('Local fixture (demo data)', 'best-odds-table')
+            )
         );
 
         // Live source, offered only when a key is configured. The key lives in
@@ -305,6 +340,7 @@ final class Plugin
                     sports: (array) apply_filters('best_odds_table_odds_api_sports', ['soccer_epl' => 'Premier League']),
                     bookmakerMap: (array) apply_filters('best_odds_table_odds_api_bookmakers', OddsApiSource::BOOKMAKERS),
                     cacheTtl: (int) apply_filters('best_odds_table_odds_api_cache_ttl', 2 * HOUR_IN_SECONDS),
+                    label: __('The Odds API (live, match result)', 'best-odds-table'),
                 )
             );
         }
@@ -456,7 +492,8 @@ final class Plugin
             $this->bookmakers,
             $this->markets,
             $this->presenter(),
-            $this->fetcher()
+            $this->fetcher(),
+            $this->labels()['markets']
         ))->register();
     }
 }

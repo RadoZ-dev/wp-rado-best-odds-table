@@ -37,7 +37,9 @@ final class SettingsPage
     private const FETCH_ACTION = 'best_odds_table_fetch_now';
 
     /**
-     * @param Closure(): OddsFetcher $fetcher Lazy, because sources are registered on plugins_loaded.
+     * @param Closure(): OddsFetcher                $fetcher      Lazy, because sources are registered on plugins_loaded.
+     * @param (Closure(): array<string, string>)|null $marketLabels Lazy translated market names, because
+     *                                                              translations load after this page is built.
      */
     public function __construct(
         private readonly SettingsSanitizer $sanitizer,
@@ -52,6 +54,7 @@ final class SettingsPage
         private readonly string $viewsPath,
         private readonly string $assetsUrl,
         private readonly string $version,
+        private readonly ?Closure $marketLabels = null,
     ) {
     }
 
@@ -112,7 +115,7 @@ final class SettingsPage
         [$rows, $warnings] = $this->sanitizer->bookmakers($input);
 
         foreach ($warnings as $i => $warning) {
-            add_settings_error(self::OPTION_BOOKMAKERS, 'bookmaker_' . $i, $warning, 'warning');
+            $this->warn(self::OPTION_BOOKMAKERS, 'bookmaker_' . $i, $this->message($warning));
         }
 
         $previousLogos = [];
@@ -129,15 +132,12 @@ final class SettingsPage
             if ($row['logo'] !== null && $row['logo'] !== ($previousLogos[$row['id']] ?? null)) {
                 $problem = $this->logoProblem($row['logo']);
                 if ($problem !== null) {
-                    add_settings_error(self::OPTION_BOOKMAKERS, 'logo_' . $row['id'], sprintf(
+                    $this->warn(self::OPTION_BOOKMAKERS, 'logo_' . $row['id'], sprintf(
                         /* translators: 1: bookmaker name, 2: reason, e.g. "the address is a web page, not an image". */
-                        __(
-                            'The logo for %1$s was removed: %2$s. Use the image file\'s own address, or choose it from the Media Library.',
-                            'best-odds-table'
-                        ),
+                        __('The logo for %1$s was removed: %2$s. Choose the image from the Media Library instead.', 'best-odds-table'),
                         $row['name'],
-                        $problem
-                    ), 'warning');
+                        $this->logoReason($problem)
+                    ));
                     $row['logo'] = null;
                 }
             }
@@ -152,7 +152,7 @@ final class SettingsPage
      * wp_safe_remote_head() refuses private and loopback addresses (other than
      * this site's own host), so the check cannot be used to probe the network.
      */
-    private function logoProblem(string $url): ?string
+    private function logoProblem(string $url): ?array
     {
         $response = wp_safe_remote_head($url, ['timeout' => 5, 'redirection' => 3]);
 
@@ -178,10 +178,61 @@ final class SettingsPage
         [$keys, $warnings] = $this->sanitizer->markets($input);
 
         foreach ($warnings as $i => $warning) {
-            add_settings_error(self::OPTION_MARKETS, 'market_' . $i, $warning, 'warning');
+            $this->warn(self::OPTION_MARKETS, 'market_' . $i, $this->message($warning));
         }
 
         return $keys;
+    }
+
+    /**
+     * WordPress prints settings messages without escaping them, so every
+     * message is escaped here. Some contain admin input or a remote server's
+     * response.
+     */
+    private function warn(string $setting, string $code, string $message): void
+    {
+        add_settings_error($setting, $code, esc_html($message), 'warning');
+    }
+
+    /**
+     * Translated text for a sanitizer warning code.
+     *
+     * @param array{code: string, name?: string} $warning
+     */
+    private function message(array $warning): string
+    {
+        $name = $warning['name'] ?? '';
+
+        return match ($warning['code']) {
+            SettingsSanitizer::INVALID_LINK => sprintf(
+                /* translators: %s: bookmaker name. */
+                __('The link for %s was not a valid http(s) address and was reset to the default.', 'best-odds-table'),
+                $name
+            ),
+            SettingsSanitizer::INVALID_LOGO => sprintf(
+                /* translators: %s: bookmaker name. */
+                __('The logo for %s was not a valid http(s) address and was removed.', 'best-odds-table'),
+                $name
+            ),
+            SettingsSanitizer::NO_MARKETS => __('At least one market must stay enabled, so all markets were kept.', 'best-odds-table'),
+            default => __('A setting could not be saved as entered.', 'best-odds-table'),
+        };
+    }
+
+    /**
+     * Translated reason for a logo check result.
+     *
+     * @param array{code: string, status?: int, type?: string} $problem
+     */
+    private function logoReason(array $problem): string
+    {
+        return match ($problem['code']) {
+            SettingsSanitizer::LOGO_WEB_PAGE => __('the address is a web page, not an image', 'best-odds-table'),
+            /* translators: %d: HTTP status code, e.g. 404. */
+            SettingsSanitizer::LOGO_HTTP_ERROR => sprintf(__('the address returned HTTP %d', 'best-odds-table'), $problem['status'] ?? 0),
+            /* translators: %s: content type the address returned, e.g. application/pdf. */
+            default => sprintf(__('the address returned %s, not an image', 'best-odds-table'), $problem['type'] ?? ''),
+        };
     }
 
     /**
@@ -228,7 +279,11 @@ final class SettingsPage
 
         $view = [
             'bookmakers' => $this->bookmakers->all(),
-            'markets' => $this->markets->all(),
+            // Translated names where the plugin has them.
+            'markets' => array_replace(
+                $this->markets->all(),
+                array_intersect_key($this->marketLabels ? ($this->marketLabels)() : [], $this->markets->all())
+            ),
             'enabledMarkets' => array_keys($this->markets->enabled()),
             'sources' => $sources,
             'activeSource' => (string) get_option(self::OPTION_SOURCE, $this->defaultSource),

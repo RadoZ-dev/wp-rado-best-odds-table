@@ -61,7 +61,10 @@ final class SettingsTest extends TestCase
         self::assertSame('bet365 x', $rows[0]['name']);
         self::assertSame('https://www.bet365.com/', $rows[0]['url']);
         self::assertNull($rows[0]['logo']);
-        self::assertCount(2, $warnings);
+        self::assertSame([
+            ['code' => SettingsSanitizer::INVALID_LINK, 'name' => 'bet365 x'],
+            ['code' => SettingsSanitizer::INVALID_LOGO, 'name' => 'bet365 x'],
+        ], $warnings);
     }
 
     public function testBookmakerSanitizingIsIdempotent(): void
@@ -78,11 +81,23 @@ final class SettingsTest extends TestCase
     {
         // A Wikimedia "File:" page: the classic mistake, the address ends in .svg but is HTML.
         self::assertSame(
-            'the address is a web page, not an image',
+            ['code' => SettingsSanitizer::LOGO_WEB_PAGE],
             $this->sanitizer->logoProblem(200, 'text/html; charset=UTF-8')
         );
-        self::assertSame('the address returned HTTP 404', $this->sanitizer->logoProblem(404, 'text/html'));
-        self::assertStringContainsString('application/pdf', (string) $this->sanitizer->logoProblem(200, 'application/pdf'));
+        self::assertSame(
+            ['code' => SettingsSanitizer::LOGO_HTTP_ERROR, 'status' => 404],
+            $this->sanitizer->logoProblem(404, 'text/html')
+        );
+        self::assertSame(
+            ['code' => SettingsSanitizer::LOGO_NOT_IMAGE, 'type' => 'application/pdf'],
+            $this->sanitizer->logoProblem(200, 'application/pdf')
+        );
+
+        // The header comes from a remote server: markup in it never survives.
+        self::assertSame(
+            ['code' => SettingsSanitizer::LOGO_NOT_IMAGE, 'type' => 'text/scriptalert1/script'],
+            $this->sanitizer->logoProblem(200, 'text/<script>alert(1)</script>')
+        );
 
         self::assertNull($this->sanitizer->logoProblem(200, 'image/svg+xml'));
         self::assertNull($this->sanitizer->logoProblem(200, 'IMAGE/PNG'));
@@ -99,7 +114,7 @@ final class SettingsTest extends TestCase
 
         [$keys, $warnings] = $this->sanitizer->markets([]);
         self::assertSame(['match_result', 'btts'], $keys);
-        self::assertCount(1, $warnings);
+        self::assertSame([['code' => SettingsSanitizer::NO_MARKETS]], $warnings);
     }
 
     public function testSourceMustBeRegistered(): void

@@ -18,6 +18,7 @@ use BestOddsTable\Source\EventFactory;
 use BestOddsTable\Source\FixtureSource;
 use BestOddsTable\Source\OddsSourceInterface;
 use BestOddsTable\Source\SourceException;
+use BestOddsTable\Storage\CacheLock;
 use BestOddsTable\Tests\Support\InMemoryStore;
 use BestOddsTable\Watch\WatchedMarket;
 use BestOddsTable\Watch\WatchList;
@@ -134,6 +135,27 @@ final class FetchAndPresentTest extends TestCase
 
         // Second run in the same minute: nothing is due.
         self::assertSame(0, $this->fetcher($this->fixture())->run(self::NOW + 60)->fetched);
+    }
+
+    public function testRunIsSkippedWhileAnotherRunHoldsTheLock(): void
+    {
+        $this->watchList->syncPost(1, [new WatchedMarket('ars-che-2026-10-18', 'match_result')]);
+        $lock = new CacheLock(new InMemoryStore());
+        $fetcher = new OddsFetcher(
+            $this->fixture(),
+            $this->watchList,
+            $this->repository,
+            new RefreshPolicy(),
+            new InMemoryStore(),
+            lock: $lock,
+        );
+
+        self::assertTrue($lock->acquire('fetch_lock', 120), 'another run holds it');
+        self::assertSame(FetchReport::LOCKED, $fetcher->run(self::NOW)->status);
+
+        $lock->release('fetch_lock');
+        self::assertSame(FetchReport::OK, $fetcher->run(self::NOW)->status);
+        self::assertTrue($lock->acquire('fetch_lock', 120), 'released after the run');
     }
 
     public function testBatchSizeDefersTheRest(): void
@@ -326,6 +348,22 @@ final class FetchAndPresentTest extends TestCase
                 self::assertMatchesRegularExpression('/^[+-]\d+$/', $cell['value']);
             }
         }
+    }
+
+    public function testPresenterUsesDisplayNamesForKnownMarketsAndOutcomesOnly(): void
+    {
+        $pair = new WatchedMarket('ars-che-2026-10-18', 'match_result');
+        $this->watchList->syncPost(1, [$pair]);
+        $this->fetcher($this->fixture())->run(self::NOW);
+        $cached = $this->repository->find($pair);
+        self::assertNotNull($cached);
+
+        $presenter = new OddsTablePresenter($this->converter, ['match_result' => 'Ergebnis'], ['draw' => 'Unentschieden']);
+        $view = $presenter->present($cached, [], OddsFormat::Decimal);
+
+        self::assertSame('Ergebnis', $view['market']['label']);
+        // Team names come from the source and are never replaced.
+        self::assertSame(['Arsenal', 'Unentschieden', 'Chelsea'], array_column($view['outcomes'], 'label'));
     }
 
     public function testBookmakerRepositoryRespectsSettingsAndSelectionOrder(): void

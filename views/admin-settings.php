@@ -14,6 +14,14 @@ defined('ABSPATH') || exit;
 $f = $view['fields'];
 $lastRun = is_array($view['lastRun']) ? $view['lastRun'] : null;
 
+// Run statuses (FetchReport) in words, for the status box.
+$statusLabels = [
+    'ok' => __('completed', 'best-odds-table'),
+    'locked' => __('skipped, another run was in progress', 'best-odds-table'),
+    'backing_off' => __('paused, the source asked us to slow down', 'best-odds-table'),
+    'rate_limited' => __('stopped early, rate-limited by the source', 'best-odds-table'),
+];
+
 $notices = [
     'ok' => [__('Fetch completed.', 'best-odds-table'), 'success'],
     'locked' => [__('A fetch is already running. Try again in a minute.', 'best-odds-table'), 'warning'],
@@ -44,7 +52,7 @@ $notices = [
                         /* translators: 1: time ago, 2: status, 3: fetched, 4: failed, 5: deferred */
                         __('%1$s ago: %2$s (%3$d fetched, %4$d failed, %5$d deferred)', 'best-odds-table'),
                         human_time_diff((int) $lastRun['at']),
-                        (string) $lastRun['status'],
+                        $statusLabels[(string) $lastRun['status']] ?? (string) $lastRun['status'],
                         (int) $lastRun['fetched'],
                         (int) $lastRun['failed'],
                         (int) $lastRun['deferred']
@@ -59,6 +67,7 @@ $notices = [
             <dd>
                 <?php
                 echo $view['nextRun']
+                    /* translators: %s: time until the next run, e.g. "5 mins". */
                     ? esc_html(sprintf(__('in %s', 'best-odds-table'), human_time_diff(time(), (int) $view['nextRun'])))
                     : esc_html__('Not scheduled', 'best-odds-table');
                 ?>
