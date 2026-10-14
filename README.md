@@ -7,7 +7,7 @@ A WordPress plugin that compares odds from multiple bookmakers. Odds come from p
 ## Requirements
 
 - PHP 8.1+
-- WordPress 6.5+
+- WordPress 6.6+
 - Composer
 
 ## Setup
@@ -24,6 +24,15 @@ Then activate **Best Odds Table** in wp-admin. Activation schedules the fetch jo
 ```bash
 composer test   # PHPUnit
 composer lint   # PHPCS, PSR-12
+```
+
+The block's built files in `build/` are committed, so the plugin works straight after cloning. After changing anything in `blocks/`, rebuild and commit `build/` with it:
+
+```bash
+npm install
+npm run build      # or: npm start (rebuild on change)
+npm run lint:js
+npm run lint:css
 ```
 
 ## How it works

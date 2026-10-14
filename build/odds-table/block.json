@@ -1,0 +1,56 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "best-odds-table/odds-table",
+  "version": "0.4.0",
+  "title": "Best Odds Table",
+  "category": "widgets",
+  "icon": "editor-table",
+  "description": "Compare one market's odds across bookmakers and highlight the best price.",
+  "keywords": [
+    "odds",
+    "betting",
+    "bookmaker",
+    "compare"
+  ],
+  "textdomain": "best-odds-table",
+  "attributes": {
+    "eventId": {
+      "type": "string",
+      "default": ""
+    },
+    "marketKey": {
+      "type": "string",
+      "default": ""
+    },
+    "bookmakers": {
+      "type": "array",
+      "default": []
+    },
+    "format": {
+      "type": "string",
+      "enum": [
+        "decimal",
+        "fractional",
+        "american"
+      ],
+      "default": "decimal"
+    }
+  },
+  "supports": {
+    "html": false,
+    "align": [
+      "wide",
+      "full"
+    ],
+    "spacing": {
+      "margin": true
+    },
+    "interactivity": true
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css",
+  "viewScriptModule": "file:./view.js",
+  "render": "file:./render.php"
+}
