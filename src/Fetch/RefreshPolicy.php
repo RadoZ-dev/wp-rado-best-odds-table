@@ -36,7 +36,9 @@ final class RefreshPolicy
     public function intervalFor(?int $startsAt, int $now): ?int
     {
         if ($startsAt === null) {
-            return $this->soonInterval; // Unknown start: treat as urgent but bounded.
+            // Unknown start means the source never found the event (a typo or
+            // a made-up id), so retry rarely instead of every few minutes.
+            return $this->farInterval;
         }
 
         $untilStart = $startsAt - $now;

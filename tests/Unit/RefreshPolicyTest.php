@@ -38,6 +38,12 @@ final class RefreshPolicyTest extends TestCase
         self::assertTrue($this->policy->isDue(null, null, self::NOW));
     }
 
+    public function testEventNeverFoundIsRetriedRarely(): void
+    {
+        self::assertSame(3600, $this->policy->intervalFor(null, self::NOW));
+        self::assertFalse($this->policy->isDue(self::NOW - 600, null, self::NOW));
+    }
+
     public function testDueOnlyAfterIntervalElapsed(): void
     {
         $soon = self::NOW + 1800;

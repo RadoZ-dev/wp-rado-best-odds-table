@@ -20,6 +20,7 @@ use BestOddsTable\Source\SourceRegistry;
 use BestOddsTable\Storage\TransientCache;
 use BestOddsTable\Storage\WpOptionStore;
 use BestOddsTable\Watch\BlockScanner;
+use BestOddsTable\Watch\WatchedMarket;
 use BestOddsTable\Watch\WatchList;
 use WP_Post;
 
@@ -270,6 +271,11 @@ final class Plugin
      * Keeps the watch list in sync with the odds blocks in a post, and
      * queues an immediate fetch for pairs nobody watched before.
      *
+     * Only published and scheduled posts are watched: drafts would let any
+     * contributor add fetch load, and the editor preview has its own
+     * on-demand fetch. Pairs the index says the source does not list are
+     * dropped, because block attributes can be edited by hand.
+     *
      * @internal Hooked to save_post.
      */
     public function onSavePost(int $postId, WP_Post $post): void
@@ -278,12 +284,17 @@ final class Plugin
             return;
         }
 
-        if ($post->post_status === 'trash') {
+        // Also covers trash, and posts moved back to draft.
+        if (!in_array($post->post_status, ['publish', 'future'], true)) {
             $this->watchList->removePost($postId);
             return;
         }
 
-        $pairs = (new BlockScanner())->pairs(parse_blocks($post->post_content));
+        $pairs = array_values(array_filter(
+            (new BlockScanner())->pairs(parse_blocks($post->post_content)),
+            // Null means no index yet: accept rather than drop real pairs.
+            fn (WatchedMarket $pair): bool => $this->odds->isListed($pair) !== false
+        ));
         $added = $this->watchList->syncPost($postId, $pairs);
 
         // A distinct argument is required: WordPress drops a single event that
