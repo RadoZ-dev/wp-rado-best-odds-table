@@ -68,6 +68,46 @@ final class SourceTest extends TestCase
         self::assertSame('good', $prices[0]->bookmakerId);
     }
 
+    /**
+     * @return array<string, array{0: array<string, mixed>}>
+     */
+    public static function badEvents(): array
+    {
+        $valid = ['id' => 'x', 'home' => 'A', 'away' => 'B', 'starts_at' => '2026-10-18T14:00:00Z'];
+
+        return [
+            'malformed date' => [['starts_at' => 'not a date'] + $valid],
+            'separator in id' => [['id' => 'a|b'] + $valid],
+            'path in id' => [['id' => '../admin'] + $valid],
+            'overlong id' => [['id' => str_repeat('a', 101)] + $valid],
+        ];
+    }
+
+    /**
+     * @dataProvider badEvents
+     *
+     * @param array<string, mixed> $data
+     */
+    public function testFactoryRejectsBadEventsWithInvalidArgumentException(array $data): void
+    {
+        // Callers skip an event on InvalidArgumentException; anything else would crash a fetch run.
+        $this->expectException(InvalidArgumentException::class);
+        (new EventFactory(new OddsConverter()))->fromArray($data);
+    }
+
+    public function testFactorySkipsMarketsWithInvalidKeys(): void
+    {
+        $event = (new EventFactory(new OddsConverter()))->fromArray([
+            'id' => 'x', 'home' => 'A', 'away' => 'B', 'starts_at' => '2026-10-18T14:00:00Z',
+            'markets' => [
+                ['key' => 'match_result', 'outcomes' => ['home' => 'A']],
+                ['key' => 'Bad Key|x', 'outcomes' => ['home' => 'A']],
+            ],
+        ]);
+
+        self::assertSame(['match_result'], array_keys($event->markets()));
+    }
+
     public function testRegistryIsLazyAndCachesInstances(): void
     {
         $registry = new SourceRegistry();

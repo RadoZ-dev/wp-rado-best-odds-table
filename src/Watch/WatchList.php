@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BestOddsTable\Watch;
 
+use InvalidArgumentException;
 use BestOddsTable\Fetch\RefreshPolicy;
 use BestOddsTable\Storage\KeyValueStore;
 
@@ -63,14 +64,24 @@ final class WatchList
     }
 
     /**
+     * Stored keys that are no longer valid (e.g. saved before the id rules
+     * were tightened) are skipped: one bad row must not stop every cron run.
+     * The next save of the post rewrites its membership without them.
+     *
      * @return list<WatchedMarket>
      */
     public function all(): array
     {
-        return array_map(
-            static fn (string $key): WatchedMarket => WatchedMarket::fromKey($key),
-            array_keys((array) $this->store->get(self::MEMBERSHIP, []))
-        );
+        $pairs = [];
+        foreach (array_keys((array) $this->store->get(self::MEMBERSHIP, [])) as $key) {
+            try {
+                $pairs[] = WatchedMarket::fromKey((string) $key);
+            } catch (InvalidArgumentException) {
+                continue;
+            }
+        }
+
+        return $pairs;
     }
 
     /**

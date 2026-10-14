@@ -5,10 +5,15 @@ declare(strict_types=1);
 namespace BestOddsTable\Watch;
 
 use InvalidArgumentException;
+use BestOddsTable\Domain\Event;
+use BestOddsTable\Domain\Market;
 
 /**
  * One event/market pair that some content on the site displays.
  * This is the unit of fetching and caching.
+ *
+ * Both parts come from user-controlled input (block attributes, REST
+ * parameters), so they are validated here, once, for every caller.
  */
 final class WatchedMarket
 {
@@ -20,6 +25,10 @@ final class WatchedMarket
     ) {
         if ($eventId === '' || $marketKey === '') {
             throw new InvalidArgumentException('Event id and market key are required.');
+        }
+
+        if (!preg_match(Event::ID_PATTERN, $eventId) || !preg_match(Market::KEY_PATTERN, $marketKey)) {
+            throw new InvalidArgumentException('Invalid event id or market key.');
         }
     }
 

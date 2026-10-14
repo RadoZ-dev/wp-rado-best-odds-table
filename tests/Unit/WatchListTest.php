@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BestOddsTable\Tests\Unit;
 
+use InvalidArgumentException;
 use BestOddsTable\Fetch\RefreshPolicy;
 use BestOddsTable\Tests\Support\InMemoryStore;
 use BestOddsTable\Watch\BlockScanner;
@@ -82,6 +83,28 @@ final class WatchListTest extends TestCase
 
         self::assertNull($this->list->state($this->a)['last_fetched']);
         self::assertSame(self::NOW, $this->list->state($this->b)['last_fetched']);
+    }
+
+    public function testPairRejectsUnsafeIds(): void
+    {
+        $unsafe = [['a|b', 'btts'], ['../x', 'btts'], ['ok', 'Match Result'], [str_repeat('a', 101), 'btts']];
+
+        foreach ($unsafe as [$id, $key]) {
+            try {
+                new WatchedMarket($id, $key);
+                self::fail(sprintf('Accepted "%s" / "%s".', $id, $key));
+            } catch (InvalidArgumentException) {
+                self::addToAssertionCount(1);
+            }
+        }
+    }
+
+    public function testInvalidStoredKeysAreSkippedNotFatal(): void
+    {
+        $store = new InMemoryStore();
+        $store->set('watch_membership', ['bad key|x' => [1], 'ars-che|match_result' => [2]]);
+
+        self::assertSame(['ars-che|match_result'], self::keys((new WatchList($store))->all()));
     }
 
     public function testScannerFindsNestedConfiguredBlocksOnly(): void

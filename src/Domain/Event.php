@@ -12,6 +12,13 @@ use DateTimeImmutable;
 final class Event
 {
     /**
+     * Allowed event ids. Ids end up in storage keys, the "event|market" watch
+     * key and a source's request URLs, so only plain slug characters are
+     * accepted: no "|", "/", "." or whitespace, and a bounded length.
+     */
+    public const ID_PATTERN = '/^[A-Za-z0-9_-]{1,100}$/';
+
+    /**
      * @param array<string, Market> $markets Keyed by market key.
      */
     public function __construct(

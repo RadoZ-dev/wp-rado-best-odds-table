@@ -11,6 +11,11 @@ namespace BestOddsTable\Domain;
 final class Market
 {
     /**
+     * Allowed market keys, e.g. "match_result". Same reasoning as Event::ID_PATTERN.
+     */
+    public const KEY_PATTERN = '/^[a-z0-9_]{1,50}$/';
+
+    /**
      * @param array<string, string> $outcomes Outcome key => label, in display order.
      * @param list<Price>           $prices
      */

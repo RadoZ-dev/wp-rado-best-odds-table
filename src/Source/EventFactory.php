@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BestOddsTable\Source;
 
 use DateTimeImmutable;
+use Exception;
 use InvalidArgumentException;
 use BestOddsTable\Conversion\OddsConverter;
 use BestOddsTable\Domain\Event;
@@ -49,10 +50,29 @@ final class EventFactory
             }
         }
 
+        // Rejected here, at the boundary, so an odd id from a source skips one
+        // event instead of failing later when it is stored or watched.
+        if (!preg_match(Event::ID_PATTERN, (string) $data['id'])) {
+            throw new InvalidArgumentException('Event has an invalid id.');
+        }
+
+        // DateTimeImmutable throws a plain Exception (DateMalformedStringException
+        // on PHP 8.3+), which callers do not catch. Convert it, so one malformed
+        // date skips that event instead of crashing the whole fetch run.
+        try {
+            $startsAt = new DateTimeImmutable((string) $data['starts_at']);
+        } catch (Exception $e) {
+            throw new InvalidArgumentException(
+                sprintf('Event "%s" has an invalid start time.', (string) $data['id']),
+                0,
+                $e
+            );
+        }
+
         $markets = [];
         foreach ((array) ($data['markets'] ?? []) as $marketData) {
             $key = (string) ($marketData['key'] ?? '');
-            if ($key === '' || ($marketKeys !== [] && !in_array($key, $marketKeys, true))) {
+            if (!preg_match(Market::KEY_PATTERN, $key) || ($marketKeys !== [] && !in_array($key, $marketKeys, true))) {
                 continue;
             }
             $markets[$key] = $this->market($marketData);
@@ -64,7 +84,7 @@ final class EventFactory
             competition: (string) ($data['competition'] ?? ''),
             home: (string) $data['home'],
             away: (string) $data['away'],
-            startsAt: new DateTimeImmutable((string) $data['starts_at']),
+            startsAt: $startsAt,
             markets: $markets,
         );
     }
