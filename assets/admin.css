@@ -1,0 +1,44 @@
+.bot-settings .bot-status {
+	max-width: 640px;
+}
+
+.bot-settings .bot-status dl {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 6px 16px;
+	margin: 0 0 12px;
+}
+
+.bot-settings .bot-status dt {
+	font-weight: 600;
+}
+
+.bot-settings .bot-status dd {
+	margin: 0;
+}
+
+.bot-settings .bot-market {
+	display: inline-block;
+	margin-right: 16px;
+}
+
+.bot-settings .bot-bookmakers .bot-col-handle {
+	width: 24px;
+	cursor: move;
+	color: #8c8f94;
+}
+
+.bot-settings .bot-bookmakers .bot-col-enabled {
+	width: 70px;
+	text-align: center;
+}
+
+.bot-settings .bot-bookmakers input.regular-text {
+	width: 100%;
+}
+
+.bot-settings .bot-sortable-placeholder {
+	height: 44px;
+	background: #f0f6fc;
+	outline: 1px dashed #72aee6;
+}

@@ -21,4 +21,18 @@ final class FetchReport
         public readonly int $deferred = 0,
     ) {
     }
+
+    /**
+     * @return array{at: int, status: string, fetched: int, failed: int, deferred: int}
+     */
+    public function toArray(int $at): array
+    {
+        return [
+            'at' => $at,
+            'status' => $this->status,
+            'fetched' => $this->fetched,
+            'failed' => $this->failed,
+            'deferred' => $this->deferred,
+        ];
+    }
 }

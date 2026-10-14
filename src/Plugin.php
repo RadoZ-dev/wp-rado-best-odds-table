@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace BestOddsTable;
 
+use BestOddsTable\Admin\SettingsPage;
+use BestOddsTable\Admin\SettingsSanitizer;
 use BestOddsTable\Conversion\OddsConverter;
 use BestOddsTable\Domain\OddsFormat;
 use BestOddsTable\Fetch\OddsFetcher;
 use BestOddsTable\Fetch\RefreshPolicy;
 use BestOddsTable\Presentation\OddsTablePresenter;
 use BestOddsTable\Repository\BookmakerRepository;
+use BestOddsTable\Repository\MarketRepository;
 use BestOddsTable\Repository\OddsRepository;
 use BestOddsTable\Rest\OddsController;
 use BestOddsTable\Source\EventFactory;
@@ -37,7 +40,7 @@ use WP_Post;
  */
 final class Plugin
 {
-    public const VERSION = '0.2.0';
+    public const VERSION = '0.3.0';
     public const SLUG = 'best-odds-table';
 
     public const CRON_FETCH = 'best_odds_table_fetch';
@@ -53,6 +56,7 @@ final class Plugin
     private readonly WatchList $watchList;
     private readonly OddsRepository $odds;
     private readonly BookmakerRepository $bookmakers;
+    private readonly MarketRepository $markets;
     private ?OddsFetcher $fetcher = null;
 
     private function __construct(private readonly string $pluginFile)
@@ -70,6 +74,10 @@ final class Plugin
         $this->bookmakers = new BookmakerRepository(
             $this->store,
             require $this->path('config/bookmakers.php')
+        );
+        $this->markets = new MarketRepository(
+            $this->store,
+            require $this->path('config/markets.php')
         );
     }
 
@@ -123,6 +131,11 @@ final class Plugin
         return $this->bookmakers;
     }
 
+    public function markets(): MarketRepository
+    {
+        return $this->markets;
+    }
+
     public function watchList(): WatchList
     {
         return $this->watchList;
@@ -134,15 +147,15 @@ final class Plugin
     }
 
     /**
-     * The source the fetcher uses. Defaults to the fixture source so the
-     * plugin works out of the box; switch with the filter or (later) the
-     * settings page.
+     * The source the fetcher uses: the one chosen on the settings page,
+     * falling back to the fixture source. The filter can still override it.
      */
     public function activeSource(): OddsSourceInterface
     {
-        $id = (string) apply_filters('best_odds_table_active_source', FixtureSource::ID);
+        $saved = (string) get_option(SettingsPage::OPTION_SOURCE, FixtureSource::ID);
+        $id = (string) apply_filters('best_odds_table_active_source', $saved);
 
-        return $this->sources->get($id);
+        return $this->sources->get($this->sources->has($id) ? $id : FixtureSource::ID);
     }
 
     /**
@@ -190,7 +203,33 @@ final class Plugin
         // API.
         add_action('rest_api_init', [$this, 'registerRest']);
 
-        // Day 2: admin settings page and the Gutenberg block.
+        // Admin.
+        if (is_admin()) {
+            $this->settingsPage()->register();
+        }
+
+        // Day 2: the Gutenberg block.
+    }
+
+    private function settingsPage(): SettingsPage
+    {
+        return new SettingsPage(
+            sanitizer: new SettingsSanitizer(
+                require $this->path('config/bookmakers.php'),
+                $this->markets->all()
+            ),
+            bookmakers: $this->bookmakers,
+            markets: $this->markets,
+            sources: $this->sources,
+            watchList: $this->watchList,
+            store: $this->store,
+            fetcher: fn (): OddsFetcher => $this->fetcher(),
+            defaultSource: FixtureSource::ID,
+            pluginBasename: plugin_basename($this->pluginFile),
+            viewsPath: $this->path('views/'),
+            assetsUrl: $this->url('assets/'),
+            version: self::VERSION,
+        );
     }
 
     /**
@@ -251,6 +290,7 @@ final class Plugin
     public function runFetch(): void
     {
         $report = $this->fetcher()->run(time());
+        $this->store->set(SettingsPage::LAST_RUN_KEY, $report->toArray(time()));
 
         do_action('best_odds_table_fetch_completed', $report);
     }
@@ -318,6 +358,12 @@ final class Plugin
      */
     public function registerRest(): void
     {
-        (new OddsController($this->odds, $this->bookmakers, $this->presenter(), $this->fetcher()))->register();
+        (new OddsController(
+            $this->odds,
+            $this->bookmakers,
+            $this->markets,
+            $this->presenter(),
+            $this->fetcher()
+        ))->register();
     }
 }

@@ -10,6 +10,7 @@ use BestOddsTable\Domain\OddsFormat;
 use BestOddsTable\Fetch\OddsFetcher;
 use BestOddsTable\Presentation\OddsTablePresenter;
 use BestOddsTable\Repository\BookmakerRepository;
+use BestOddsTable\Repository\MarketRepository;
 use BestOddsTable\Repository\OddsRepository;
 use BestOddsTable\Source\SourceException;
 use BestOddsTable\Watch\WatchedMarket;
@@ -33,6 +34,7 @@ final class OddsController
     public function __construct(
         private readonly OddsRepository $odds,
         private readonly BookmakerRepository $bookmakers,
+        private readonly MarketRepository $markets,
         private readonly OddsTablePresenter $presenter,
         private readonly OddsFetcher $fetcher,
     ) {
@@ -130,7 +132,30 @@ final class OddsController
             }
         }
 
-        return new WP_REST_Response($index);
+        return new WP_REST_Response($this->onlyEnabledMarkets($index));
+    }
+
+    /**
+     * Editors may only pick markets the admin enabled. Events left with no
+     * enabled market are dropped from the picker.
+     *
+     * @param list<array<string, mixed>> $index
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function onlyEnabledMarkets(array $index): array
+    {
+        $enabled = $this->markets->enabled();
+        $filtered = [];
+
+        foreach ($index as $event) {
+            $event['markets'] = array_intersect_key((array) ($event['markets'] ?? []), $enabled);
+            if ($event['markets'] !== []) {
+                $filtered[] = $event;
+            }
+        }
+
+        return $filtered;
     }
 
     public function listBookmakers(): WP_REST_Response
